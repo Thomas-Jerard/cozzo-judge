@@ -23,6 +23,7 @@ export function CallResult({
   shareText,
   onAnother,
   statusNote,
+  layout = "split",
 }: {
   card: Scorecard;
   bench?: BenchReport | null;
@@ -44,12 +45,14 @@ export function CallResult({
   shareText?: string | null;
   onAnother?: () => void;
   statusNote?: string | null;
+  layout?: "split" | "stack";
 }) {
   const issues = topIssues(card);
   const tone = bandColor(card.verdict === "fail" ? Math.min(card.overall, 69) : card.overall);
 
   return (
-    <article id="result" className="grid gap-8">
+    <article id="result" className={layout === "split" ? "score-split score-split-wide" : "score-split"}>
+      <div className="grid min-w-0 gap-8">
       <header className="grid gap-4">
         <p className="text-sm text-muted-foreground">{card.call.label || "This call"}</p>
         <div className="flex flex-wrap items-end gap-4 sm:gap-6">
@@ -63,7 +66,7 @@ export function CallResult({
             </h1>
           </div>
         </div>
-        <p className="max-w-xl text-lg leading-relaxed">{card.summary}</p>
+        <p className="measure text-lg leading-relaxed">{card.summary}</p>
       </header>
 
       <section className="grid gap-3">
@@ -108,8 +111,9 @@ export function CallResult({
           Judge another call
         </button>
       ) : null}
+      </div>
 
-      <div className="grid gap-3 border-t border-border pt-8">
+      <div className="score-aside">
         <details className="group py-2">
           <summary className="cursor-pointer text-base font-medium">The five checks</summary>
           <div className="mt-5 grid gap-6">

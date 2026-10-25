@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CallResult } from "@/components/call-result";
 import { CozzoCanary } from "@/components/cozzo-canary";
+import { PageShell } from "@/components/page-shell";
 import { JudgeSettings, modeHelp } from "@/components/judge-settings";
 import { LimitNotice } from "@/components/limit-notice";
 import { StepFlow } from "@/components/step-flow";
@@ -255,14 +256,17 @@ export function ScoreWorkspace() {
   const showEditor = !usingSample || editing;
 
   return (
-    <div className="mx-auto grid max-w-2xl gap-10 px-5 py-10 sm:px-6 sm:py-14">
+    <PageShell>
+      <div className="grid gap-[var(--section-gap)]">
       <StepFlow step={flowStep} />
 
       {flowStep === 2 ? (
-        <div className="grid justify-items-start gap-4 py-8">
+        <div className="flex flex-col items-start gap-6 py-6 sm:flex-row sm:items-center">
           <CozzoCanary pose="think" size={104} label="Cozzo the Canary listening to the call" />
-          <h1 className="text-3xl font-semibold tracking-tight">Cozzo is listening to the call</h1>
-          <p className="text-lg leading-relaxed text-muted-foreground">{waitCopy(step, repairing)}</p>
+          <div className="grid gap-3">
+            <h1 className="text-3xl font-semibold tracking-tight">Cozzo is listening to the call</h1>
+            <p className="measure text-lg leading-relaxed text-muted-foreground">{waitCopy(step, repairing)}</p>
+          </div>
         </div>
       ) : null}
 
@@ -313,209 +317,213 @@ export function ScoreWorkspace() {
       ) : null}
 
       {flowStep === 1 ? (
-        <div className="grid gap-10">
-          <div className="grid gap-3">
-            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Pick a call</h1>
-            <p className="text-base leading-relaxed text-muted-foreground">
-              Choose a sample, or paste a transcript and the script the business approved.
-            </p>
-          </div>
-
-          {usingSample ? (
-            <>
-              <fieldset className="grid gap-3">
-                <legend className="text-base font-medium">Which business?</legend>
-                <div className="grid gap-3">
-                  {SCENARIOS.map((item) => {
-                    const selected = scenario.id === item.id;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        aria-pressed={selected}
-                        onClick={() => loadScenario(item)}
-                        className={`rounded-2xl border px-4 py-4 text-left ${
-                          selected ? "border-foreground bg-card" : "border-border bg-card/40"
-                        }`}
-                      >
-                        <span className="block font-medium">{item.industry}</span>
-                        <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">
-                          {item.business}. {item.summary}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </fieldset>
-
-              <fieldset className="grid gap-3">
-                <legend className="text-base font-medium">Which agent?</legend>
-                <div className="grid gap-3">
-                  {scenario.providers.map((item) => {
-                    const selected = provider.id === item.id;
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        aria-pressed={selected}
-                        onClick={() => loadProvider(item)}
-                        className={`rounded-2xl border px-4 py-4 text-left ${
-                          selected ? "border-foreground bg-card" : "border-border bg-card/40"
-                        }`}
-                      >
-                        <span className="block font-medium">{item.name}</span>
-                        <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">{item.blurb}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  Synthetic example. Not a real caller. Northline Voice and Harbor Voice are fictional.
-                </p>
-              </fieldset>
-            </>
-          ) : (
-            <div className="flex items-end gap-4">
-              <CozzoCanary pose="peek" size={88} label="Cozzo the Canary waiting for a call" />
-              <p className="pb-1 text-sm leading-relaxed text-muted-foreground">
-                Paste the approved script and the call. I’ll wait.{" "}
-                <button
-                  type="button"
-                  className="font-medium text-foreground underline-offset-4 hover:underline"
-                  onClick={() => loadScenario(scenario)}
-                >
-                  Use a sample instead
-                </button>
+        <div className="grid items-start gap-8 xl:grid-cols-2 xl:gap-x-12">
+          <div className="grid gap-8">
+            <div className="grid gap-3">
+              <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Pick a call</h1>
+              <p className="measure text-base leading-relaxed text-muted-foreground">
+                Choose a sample, or paste a transcript and the script the business approved.
               </p>
             </div>
-          )}
 
-          {showEditor ? (
-            <div className="grid gap-6">
-              <div className="grid gap-2">
-                <Label htmlFor="requirements">The script the business approved</Label>
-                <Textarea
-                  id="requirements"
-                  value={requirements}
-                  onChange={(event) => {
-                    setRequirements(event.target.value);
-                    setUsingSample(false);
-                  }}
-                  className="field-sizing-fixed min-h-36 text-sm leading-relaxed"
-                />
-              </div>
-              <TranscriptField
-                id="transcript"
-                label="The call"
-                value={transcript}
-                showFormats={false}
-                onChange={(value) => {
-                  setTranscript(value);
-                  if (value !== provider.plain && value !== provider.audioJson) setUsingSample(false);
-                }}
-                format={format}
-                onFormat={(next) => {
-                  setFormat(next);
-                  if (usingSample) setTranscript(next === "json" ? sampleJson : samplePlain);
-                }}
-                plain={samplePlain}
-                audioJson={sampleJson}
-              />
-            </div>
-          ) : (
-            <button
-              type="button"
-              className="w-fit text-sm font-medium underline-offset-4 hover:underline"
-              onClick={() => setEditing(true)}
-            >
-              Look at or edit this call
-            </button>
-          )}
+            {usingSample ? (
+              <>
+                <fieldset className="grid gap-3">
+                  <legend className="text-base font-medium">Which business?</legend>
+                  <div className="grid gap-3">
+                    {SCENARIOS.map((item) => {
+                      const selected = scenario.id === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          aria-pressed={selected}
+                          onClick={() => loadScenario(item)}
+                          className="choice"
+                        >
+                          <span className="block font-medium">{item.industry}</span>
+                          <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">
+                            {item.business}. {item.summary}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </fieldset>
 
-          {usingSample ? (
-            <button
-              type="button"
-              className="w-fit text-sm text-muted-foreground underline-offset-4 hover:underline"
-              onClick={() => {
-                setUsingSample(false);
-                setEditing(true);
-                setRequirements("");
-                setTranscript("");
-                clearResult();
-              }}
-            >
-              Paste your own call instead
-            </button>
-          ) : null}
-
-          <div className="grid gap-4">
-            <Button type="button" size="lg" className="h-12 w-full px-6 text-base sm:w-fit" disabled={busy || !ready} onClick={() => judge()}>
-              Judge this call
-            </Button>
-            {!ready ? <p className="text-sm text-muted-foreground">Add the script and the call first.</p> : null}
-            {error && rateLimited ? (
-              <LimitNotice
-                message={error}
-                actionLabel="Score with the practice judge"
-                disabled={busy}
-                onAction={() => judge("mock")}
-              />
-            ) : null}
-            {error && !rateLimited ? (
-              <div className="grid gap-3">
-                <p role="alert" className="text-sm leading-relaxed">{error}</p>
-                {mode !== "mock" ? (
+                <fieldset className="grid gap-3">
+                  <legend className="text-base font-medium">Which agent?</legend>
+                  <div className="grid gap-3">
+                    {scenario.providers.map((item) => {
+                      const selected = provider.id === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          aria-pressed={selected}
+                          onClick={() => loadProvider(item)}
+                          className="choice"
+                        >
+                          <span className="block font-medium">{item.name}</span>
+                          <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">{item.blurb}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    Synthetic example. Not a real caller. Northline Voice and Harbor Voice are fictional.
+                  </p>
+                </fieldset>
+              </>
+            ) : (
+              <div className="flex items-end gap-4">
+                <CozzoCanary pose="peek" size={88} label="Cozzo the Canary waiting for a call" />
+                <p className="measure pb-1 text-sm leading-relaxed text-muted-foreground">
+                  Paste the approved script and the call. I’ll wait.{" "}
                   <button
                     type="button"
-                    className="w-fit text-sm font-medium underline-offset-4 hover:underline"
-                    disabled={busy}
-                    onClick={() => judge("mock")}
+                    className="font-medium text-foreground underline-offset-4 hover:underline"
+                    onClick={() => loadScenario(scenario)}
                   >
-                    Score with the practice judge
+                    Use a sample instead
                   </button>
-                ) : null}
+                </p>
               </div>
+            )}
+          </div>
+
+          <div
+            className={`${showEditor ? "grid" : "hidden xl:grid"} gap-6 xl:col-start-2 xl:row-start-1 xl:row-span-3`}
+          >
+            <div className="grid gap-2">
+              <Label htmlFor="requirements">The script the business approved</Label>
+              <Textarea
+                id="requirements"
+                value={requirements}
+                onChange={(event) => {
+                  setRequirements(event.target.value);
+                  setUsingSample(false);
+                }}
+                className="field-sizing-fixed min-h-36 text-sm leading-relaxed"
+              />
+            </div>
+            <TranscriptField
+              id="transcript"
+              label="The call"
+              value={transcript}
+              showFormats={false}
+              onChange={(value) => {
+                setTranscript(value);
+                if (value !== provider.plain && value !== provider.audioJson) setUsingSample(false);
+              }}
+              format={format}
+              onFormat={(next) => {
+                setFormat(next);
+                if (usingSample) setTranscript(next === "json" ? sampleJson : samplePlain);
+              }}
+              plain={samplePlain}
+              audioJson={sampleJson}
+            />
+          </div>
+
+          <div className="grid gap-4">
+            {showEditor ? null : (
+              <button
+                type="button"
+                className="w-fit text-sm font-medium underline-offset-4 hover:underline xl:hidden"
+                onClick={() => setEditing(true)}
+              >
+                Look at or edit this call
+              </button>
+            )}
+            {usingSample ? (
+              <button
+                type="button"
+                className="w-fit text-sm text-muted-foreground underline-offset-4 hover:underline"
+                onClick={() => {
+                  setUsingSample(false);
+                  setEditing(true);
+                  setRequirements("");
+                  setTranscript("");
+                  clearResult();
+                }}
+              >
+                Paste your own call instead
+              </button>
             ) : null}
           </div>
 
-          <details className="border-t border-border pt-6">
-            <summary className="cursor-pointer text-base font-medium">Advanced</summary>
-            <div className="mt-6 grid gap-6">
-              <JudgeSettings status={status} model={model} mode={mode} onModel={setModel} onMode={setMode} />
-              <p className="text-sm leading-relaxed text-muted-foreground">{plainModeHelp(status, mode)}</p>
-              <div className="grid gap-2">
-                <p className="text-sm font-medium">Call format</p>
-                <div className="flex gap-4 text-sm">
-                  <button
-                    type="button"
-                    className={format === "plain" ? "font-medium" : "text-muted-foreground"}
-                    onClick={() => {
-                      setFormat("plain");
-                      if (usingSample) setTranscript(samplePlain);
-                    }}
-                  >
-                    Plain text
-                  </button>
-                  <button
-                    type="button"
-                    className={format === "json" ? "font-medium" : "text-muted-foreground"}
-                    onClick={() => {
-                      setFormat("json");
-                      if (usingSample) setTranscript(sampleJson);
-                    }}
-                  >
-                    Audio JSON
-                  </button>
+          <div className="grid gap-8">
+            <div className="grid gap-4">
+              <Button type="button" size="lg" className="h-12 w-full px-6 text-base sm:w-fit" disabled={busy || !ready} onClick={() => judge()}>
+                Judge this call
+              </Button>
+              {!ready ? <p className="text-sm text-muted-foreground">Add the script and the call first.</p> : null}
+              {error && rateLimited ? (
+                <LimitNotice
+                  message={error}
+                  actionLabel="Score with the practice judge"
+                  disabled={busy}
+                  onAction={() => judge("mock")}
+                />
+              ) : null}
+              {error && !rateLimited ? (
+                <div className="grid gap-3">
+                  <p role="alert" className="text-sm leading-relaxed">{error}</p>
+                  {mode !== "mock" ? (
+                    <button
+                      type="button"
+                      className="w-fit text-sm font-medium underline-offset-4 hover:underline"
+                      disabled={busy}
+                      onClick={() => judge("mock")}
+                    >
+                      Score with the practice judge
+                    </button>
+                  ) : null}
                 </div>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  Audio JSON is the timestamped file a speech-to-text tool already produced.
-                </p>
-              </div>
+              ) : null}
             </div>
-          </details>
+
+            <details className="border-t border-border pt-6">
+              <summary className="cursor-pointer text-base font-medium">Advanced</summary>
+              <div className="mt-6 grid gap-6">
+                <JudgeSettings status={status} model={model} mode={mode} onModel={setModel} onMode={setMode} />
+                <p className="measure text-sm leading-relaxed text-muted-foreground">{plainModeHelp(status, mode)}</p>
+                <div className="grid gap-2">
+                  <p className="text-sm font-medium">Call format</p>
+                  <div className="flex gap-4 text-sm">
+                    <button
+                      type="button"
+                      className={format === "plain" ? "font-medium" : "text-muted-foreground"}
+                      onClick={() => {
+                        setFormat("plain");
+                        if (usingSample) setTranscript(samplePlain);
+                      }}
+                    >
+                      Plain text
+                    </button>
+                    <button
+                      type="button"
+                      className={format === "json" ? "font-medium" : "text-muted-foreground"}
+                      onClick={() => {
+                        setFormat("json");
+                        if (usingSample) setTranscript(sampleJson);
+                      }}
+                    >
+                      Audio JSON
+                    </button>
+                  </div>
+                  <p className="measure text-sm leading-relaxed text-muted-foreground">
+                    Audio JSON is the timestamped file a speech-to-text tool already produced.
+                  </p>
+                </div>
+              </div>
+            </details>
+          </div>
         </div>
       ) : null}
-    </div>
+      </div>
+    </PageShell>
   );
 }
 

@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { AppealPanel } from "@/components/bench-panel";
 import { CozzoCanary } from "@/components/cozzo-canary";
+import { PageShell } from "@/components/page-shell";
 import { CallResult } from "@/components/call-result";
 import { JudgeSettings, modeHelp } from "@/components/judge-settings";
 import { LimitNotice } from "@/components/limit-notice";
@@ -206,7 +207,7 @@ export function CompareWorkspace() {
   const lead = left && right ? leadOf(left, right) : null;
 
   return (
-    <div className="mx-auto max-w-6xl px-5 py-8 sm:px-6">
+    <PageShell>
       <div className="flex items-end gap-4">
         <CozzoCanary pose="idle" size={72} label="Cozzo the Canary" />
         <div>
@@ -214,7 +215,7 @@ export function CompareWorkspace() {
           <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">Compare two agents</h1>
         </div>
       </div>
-      <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground">
+      <p className="measure mt-3 text-base leading-relaxed text-muted-foreground">
         Optional. The main path is one call at a time. Here, the same script is scored for two agents. A gap of three
         points or less is a tie.
       </p>
@@ -249,7 +250,7 @@ export function CompareWorkspace() {
         />
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid min-w-0 gap-6 xl:grid-cols-2">
         <ProviderColumn
           title="Provider A"
           label={leftLabel}
@@ -336,7 +337,7 @@ export function CompareWorkspace() {
             <p className="text-2xl font-semibold tracking-tight">{lead.headline}</p>
             <p className="text-base leading-relaxed text-muted-foreground">{lead.detail}</p>
           </div>
-          <div className="overflow-x-auto">
+          <div className="min-w-0 overflow-x-auto">
             <table className="w-full min-w-[36rem] text-sm">
               <thead className="text-left text-muted-foreground">
                 <tr>
@@ -388,9 +389,9 @@ export function CompareWorkspace() {
               {appeal ? <AppealPanel appeal={appeal} /> : null}
             </div>
           </details>
-          <div className="grid gap-12 lg:grid-cols-2">
-            <CallResult card={left} />
-            <CallResult card={right} />
+          <div className="grid min-w-0 gap-12 xl:grid-cols-2">
+            <CallResult card={left} layout="stack" />
+            <CallResult card={right} layout="stack" />
           </div>
         </section>
       ) : null}
@@ -401,7 +402,7 @@ export function CompareWorkspace() {
           <p className="mt-1 text-sm text-muted-foreground">
             Dental, HVAC, and med spa. Each row is the same script scored for Northline Voice and Harbor Voice.
           </p>
-          <div className="mt-4 overflow-x-auto rounded-2xl bg-card ring-1 ring-foreground/10">
+          <div className="mt-4 min-w-0 overflow-x-auto rounded-2xl bg-card ring-1 ring-foreground/10">
             <table className="w-full min-w-[32rem] text-sm">
               <thead className="text-left text-xs tracking-wide text-muted-foreground uppercase">
                 <tr>
@@ -425,7 +426,7 @@ export function CompareWorkspace() {
           </div>
         </section>
       ) : null}
-    </div>
+    </PageShell>
   );
 }
 
