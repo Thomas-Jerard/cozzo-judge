@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CallResult } from "@/components/call-result";
+import { CozzoCanary } from "@/components/cozzo-canary";
 import { decodeCardHash, type SharedCard } from "@/lib/share";
 
 export function CardView() {
@@ -30,7 +31,8 @@ export function CardView() {
 
   if (error === "empty") {
     return (
-      <div className="mx-auto max-w-xl px-5 py-16">
+      <div className="mx-auto grid max-w-xl justify-items-start gap-4 px-5 py-16">
+        <CozzoCanary pose="peek" size={88} label="Cozzo the Canary waiting for a scorecard" />
         <h1 className="text-3xl font-semibold tracking-tight">No scorecard in this link</h1>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
           Score a call, then choose Copy link. The card is stored in the URL itself, so there is no account and no database.
@@ -54,7 +56,12 @@ export function CardView() {
   }
 
   if (!card) {
-    return <p className="px-5 py-16 text-sm text-muted-foreground">Opening the scorecard…</p>;
+    return (
+      <div className="grid justify-items-start gap-3 px-5 py-16">
+        <CozzoCanary pose="think" size={88} label="Cozzo the Canary opening the scorecard" />
+        <p className="text-sm text-muted-foreground">Cozzo is opening the scorecard…</p>
+      </div>
+    );
   }
 
   return (

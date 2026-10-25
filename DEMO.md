@@ -12,6 +12,8 @@ Before you hit record:
 
 Open the home page. Stay on the first screen.
 
+Point at Cozzo the Canary. **“Hi, I’m Cozzo. A canary in the coal mine for voice agents.”**
+
 **“A buyer comparing voice agents cannot see the call in a feature grid. Cozzo Judge is three steps. Pick a call. Judge it. Read the score.”**
 
 Point at the numbered list, then at the quiet line under the button. **“The score is powered by NVIDIA Nemotron on Nebius.”**
@@ -26,11 +28,11 @@ The steps at the top should show **1 Pick a call**.
 
 Click **Harbor Voice**. Do not open the transcript.
 
-Click **Judge this call**. Step 2 should read as one sentence, not a wall of model names.
+Click **Judge this call**. Step 2 should say **Cozzo is listening to the call**, plus one sentence. Not a wall of model names.
 
 ## 0:45 — The result
 
-When the result lands, stay at the top. Point only at the number, the word Fail, the sentence, and the short list of issues.
+When the result lands, stay at the top. Point at Cozzo, the number, the word Fail, the sentence, and the short list of issues. The canary keeps one pose. The ring around it changes with the verdict.
 
 **“The score is the big thing. Fail is in plain words. These are the issues: an invented price, Medicaid, and a dentist who is out.”**
 
