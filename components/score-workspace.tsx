@@ -286,6 +286,7 @@ export function ScoreWorkspace() {
               clearResult();
               setEditing(false);
             }}
+            statusNote={repairing ? repairProgress(step) : null}
           />
           {error && rateLimited ? (
             <LimitNotice
@@ -516,6 +517,13 @@ export function ScoreWorkspace() {
       ) : null}
     </div>
   );
+}
+
+function repairProgress(step: StreamStep | null): string {
+  if (step === "retry") return "The first draft was not usable. Trying once more.";
+  if (step === "rescore" || step === "score") return "Scoring the rewrite.";
+  if (step === "quotes") return "Checking the new lines.";
+  return "Writing a shorter prompt.";
 }
 
 function waitCopy(step: StreamStep | null, repairing: boolean): string {

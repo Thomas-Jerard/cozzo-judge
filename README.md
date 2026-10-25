@@ -52,7 +52,7 @@ The main path is three steps: pick a call, judge it, read the result. Compare, t
 
 Create a key in Nebius Token Factory and keep it in `.env.local` or in the host's secret store. Do not commit it.
 
-On Vercel, add `NEBIUS_API_KEY` in project settings. Route handlers set `maxDuration = 120` so one live call, plus a single retry when the model returns invalid JSON, can finish. Each Token Factory request times out after 55 seconds. If a host cuts the request off, score with Super or raise the function duration on a plan that allows it.
+On Vercel, add `NEBIUS_API_KEY` in project settings. Route handlers set `maxDuration = 120`. A score times out after 55 seconds, and one invalid JSON scorecard is retried. **Fix the prompt** asks Super for a short JSON rewrite (40 seconds, structured output when Token Factory accepts it). If that draft is not usable JSON, it tries once more with a stricter prompt (32 seconds), then rescores for 40 seconds. Those three caps stay inside the route. If a host cuts the request off, try Fix the prompt again.
 
 ## Live rate limits
 
@@ -61,6 +61,7 @@ Live scoring is capped so a public demo cannot spend the Nebius balance. Mock sc
 - 10 live scorecards per visitor IP per rolling hour (`LIVE_IP_HOURLY_CAP`).
 - 300 live scorecards per UTC day across everyone (`LIVE_DAILY_CAP`).
 - A Super score on **Judge a call** counts as 2 (Nano triage plus the Super scorecard). Any other model counts as 1. **Ask for a second opinion** (Ultra) counts as 1. **Fix the prompt** counts as 2 (the rewrite, then the rescore). **Compare** counts as 2, one Super scorecard each, with no Nano step. **Run all three scenarios** is three compares, so it counts as 6.
+- A rewrite that is not valid JSON tries once more. That extra model call is not a second scorecard.
 - A request that does not fit in the remaining budget is refused as a whole. Nothing is reserved.
 - The response is HTTP 429 with a short explanation. The page shows that message and a button to score the same call, pair, or pack with the mock judge.
 

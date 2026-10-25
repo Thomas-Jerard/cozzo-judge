@@ -22,6 +22,7 @@ export function CallResult({
   shareNotice,
   shareText,
   onAnother,
+  statusNote,
 }: {
   card: Scorecard;
   bench?: BenchReport | null;
@@ -42,6 +43,7 @@ export function CallResult({
   shareNotice?: string | null;
   shareText?: string | null;
   onAnother?: () => void;
+  statusNote?: string | null;
 }) {
   const issues = topIssues(card);
   const tone = bandColor(card.verdict === "fail" ? Math.min(card.overall, 69) : card.overall);
@@ -83,6 +85,12 @@ export function CallResult({
         <p className="text-base leading-relaxed">
           The first score was {beforeScore}. This rewrite scored {card.overall}. The caller’s words are the same. This
           is a rewritten transcript, not a new phone call.
+        </p>
+      ) : null}
+
+      {statusNote ? (
+        <p aria-live="polite" className="text-base leading-relaxed text-muted-foreground">
+          {statusNote}
         </p>
       ) : null}
 

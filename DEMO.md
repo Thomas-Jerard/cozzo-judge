@@ -40,7 +40,7 @@ Click **Fix the prompt**. It is the only filled button on this screen.
 
 ## 1:20 — The rewrite
 
-Wait on that same button. When the number changes, point at the line that says the first score and the rewrite score.
+Wait on that same button. The line under it says a shorter prompt is being written, then scored. When the number changes, point at the line that says the first score and the rewrite score.
 
 **“The caller’s words stayed. The agent lines were rewritten, and the score moved. This is not a new phone call.”**
 
