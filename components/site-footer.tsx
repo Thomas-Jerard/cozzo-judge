@@ -1,9 +1,10 @@
 import { CozzoMark } from "@/components/cozzo-mark";
+import { PageBar } from "@/components/page-shell";
 
 export function SiteFooter() {
   return (
     <footer className="mt-auto border-t border-border/80">
-      <div className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-8 text-sm text-muted-foreground sm:px-6">
+      <PageBar className="flex flex-col gap-4 py-8 text-sm text-muted-foreground">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <a
             href="https://cozzo.io"
@@ -22,7 +23,7 @@ export function SiteFooter() {
           </p>
           <p className="sm:text-right">Powered by NVIDIA Nemotron on Nebius</p>
         </div>
-      </div>
+      </PageBar>
     </footer>
   );
 }

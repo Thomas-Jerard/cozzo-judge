@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { CompareWorkspace } from "@/components/compare-workspace";
+import { PageShell } from "@/components/page-shell";
 
 export const metadata: Metadata = {
   title: "Advanced",
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function ComparePage() {
   return (
-    <Suspense fallback={<p className="px-5 py-16 text-sm text-muted-foreground">Loading…</p>}>
+    <Suspense fallback={<PageShell><p className="text-sm text-muted-foreground">Loading…</p></PageShell>}>
       <CompareWorkspace />
     </Suspense>
   );

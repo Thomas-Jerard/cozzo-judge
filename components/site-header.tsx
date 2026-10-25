@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CozzoMark } from "@/components/cozzo-mark";
+import { PageBar } from "@/components/page-shell";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 
@@ -16,7 +17,7 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-background/90 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-5 sm:px-6">
+      <PageBar className="flex h-16 items-center justify-between gap-3">
         <a
           href="https://cozzo.io"
           className="flex min-w-0 items-center gap-2.5 font-heading text-lg font-semibold tracking-tight"
@@ -48,7 +49,7 @@ export function SiteHeader() {
           })}
           <ThemeToggle />
         </nav>
-      </div>
+      </PageBar>
     </header>
   );
 }

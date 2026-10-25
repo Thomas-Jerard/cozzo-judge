@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CallResult } from "@/components/call-result";
 import { CozzoCanary } from "@/components/cozzo-canary";
+import { PageShell } from "@/components/page-shell";
 import { decodeCardHash, type SharedCard } from "@/lib/share";
 
 export function CardView() {
@@ -31,41 +32,41 @@ export function CardView() {
 
   if (error === "empty") {
     return (
-      <div className="mx-auto grid max-w-xl justify-items-start gap-4 px-5 py-16">
+      <PageShell className="grid justify-items-start gap-4">
         <CozzoCanary pose="peek" size={88} label="Cozzo the Canary waiting for a scorecard" />
         <h1 className="text-3xl font-semibold tracking-tight">No scorecard in this link</h1>
-        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+        <p className="measure text-sm leading-relaxed text-muted-foreground">
           Score a call, then choose Copy link. The card is stored in the URL itself, so there is no account and no database.
         </p>
-        <Link href="/score?sample=dental" className="mt-6 inline-block text-sm font-medium underline-offset-4 hover:underline">
+        <Link href="/score?sample=dental" className="mt-2 inline-block text-sm font-medium underline-offset-4 hover:underline">
           Judge a call
         </Link>
-      </div>
+      </PageShell>
     );
   }
 
   if (error === "bad") {
     return (
-      <div className="mx-auto max-w-xl px-5 py-16">
+      <PageShell>
         <h1 className="text-3xl font-semibold tracking-tight">This scorecard link could not be read</h1>
-        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+        <p className="measure mt-3 text-sm leading-relaxed text-muted-foreground">
           The hash is missing a piece or it was edited. Score the call again and copy a new link.
         </p>
-      </div>
+      </PageShell>
     );
   }
 
   if (!card) {
     return (
-      <div className="grid justify-items-start gap-3 px-5 py-16">
+      <PageShell className="grid justify-items-start gap-3">
         <CozzoCanary pose="think" size={88} label="Cozzo the Canary opening the scorecard" />
         <p className="text-sm text-muted-foreground">Cozzo is opening the scorecard…</p>
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-5 py-10 sm:px-6 sm:py-14">
+    <PageShell>
       <CallResult
         card={card.scorecard}
         bench={card.bench}
@@ -82,6 +83,6 @@ export function CardView() {
             : null
         }
       />
-    </div>
+    </PageShell>
   );
 }
