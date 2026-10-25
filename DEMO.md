@@ -5,67 +5,65 @@ Aim for about 2 minutes 40 seconds so the recording stays under the 3-minute lim
 Before you hit record:
 
 - Open the deployed app, or `npm run dev`.
-- If `NEBIUS_API_KEY` is set, leave the judge on **Auto** and the model on **Nemotron 3 Super**. That is the path that runs Nano, then Super.
-- If the key is not set, say so and show the mock badge. Do not pretend a mock score came from Nebius. The bench, the appeal, and Fix the prompt still run locally and are labeled mock.
+- Leave the connection on **Auto**. Do not open Advanced unless the last half-minute needs it.
+- If `NEBIUS_API_KEY` is set, one score is a real Nemotron call. If it is not set, say so when you open **How the models worked**. Do not pretend a practice score came from Nebius.
 
-## 0:00 — The problem, and who does what
+## 0:00 — Three steps
 
 Open the home page. Stay on the first screen.
 
-**“A buyer comparing voice agents cannot see the call in a feature grid. Cozzo Judge scores the transcript against the script the business approved.”**
+**“A buyer comparing voice agents cannot see the call in a feature grid. Cozzo Judge is three steps. Pick a call. Judge it. Read the score.”**
 
-Point at the three cards. **“Nano is the fast risk line. Super writes the rubric score. Ultra is the appeal, and it does not move the number.”**
+Point at the numbered list, then at the quiet line under the button. **“The score is powered by NVIDIA Nemotron on Nebius.”**
 
-## 0:22 — One good call, two models
+Click **Judge a call**.
 
-Open **Score the dental sample**. The banner says synthetic. Northline Voice is loaded.
+## 0:20 — Pick a call
 
-**“Brightmolar Family Dental is fictional. Northline is a fictional provider, not a vendor on cozzo.io.”**
+The steps at the top should show **1 Pick a call**.
 
-Click **Judge this call**. The progress list should move from Nano, to Super, to the quote check.
+**“Brightmolar Family Dental is fictional. I’ll start with Harbor Voice, the agent that misses the script.”**
 
-When the card lands, point at the model bench: Nano’s risk, Super’s latency, and both model ids. **“Two Nemotron calls on Nebius Token Factory. Nano said the risk was low. Super scored the rubric. The key never left the server.”**
+Click **Harbor Voice**. Do not open the transcript.
 
-If the badge says **Mock**, point at the Auto note instead. **“No key here, so this bench is the local rubric. The same buttons call Nemotron when the key is set.”**
+Click **Judge this call**. Step 2 should read as one sentence, not a wall of model names.
 
-Open **Factual accuracy** and read one quote. **“The evidence is a line from the call.”**
+## 0:45 — The result
 
-## 0:58 — The miss
+When the result lands, stay at the top. Point only at the number, the word Fail, the sentence, and the short list of issues.
 
-Click **Harbor Voice**, then **Judge this call**.
+**“The score is the big thing. Fail is in plain words. These are the issues: an invented price, Medicaid, and a dentist who is out.”**
 
-**“Same script. Harbor invents a $49 special, says they take Medicaid, and books Dr. Nguyen, who is out.”**
+Click **Fix the prompt**. It is the only filled button on this screen.
 
-Point at the critical flags and the Fail. If the bench says Nano and Super disagree, read that sentence. **“The number on the card is Super’s. Nano only says whether the call looks risky.”**
+## 1:20 — The rewrite
 
-## 1:25 — Fix the prompt
+Wait on that same button. When the number changes, point at the line that says the first score and the rewrite score.
 
-Click **Fix the prompt**. Wait through Rewrite, then Rescore.
+**“The caller’s words stayed. The agent lines were rewritten, and the score moved. This is not a new phone call.”**
 
-Point at the before and after numbers. **“Super wrote a tighter prompt and new agent lines. The caller’s words are the same. This is a rewritten transcript, not a new phone call, and the score moved.”**
+## 1:50 — The detail, only if you open it
 
-Open **Read the rewritten transcript** only if there is time, and show that the caller lines are still Elena’s.
+Open **The five checks** and read one quote. **“The line is from the call.”**
 
-## 1:55 — Ultra appeal
+Open **How the models worked**. **“Nano did the fast read. Super wrote the number. Both ran on Nebius Token Factory, and the key stayed on the server.”**
 
-Click **Ask Ultra**.
+If the score says it was a practice run, say that instead.
 
-**“Ultra reads the same call and says whether it agrees. The ring does not change. That is the hard reasoning step, used only when we ask.”**
+Open **Second opinion** and click **Ask for a second opinion**. **“That is the larger model. It says whether it agrees. The number stays where it is.”**
 
-If you are on the revised card, Ultra is appealing the rewrite. That is fine. Say so in one clause.
+## 2:20 — Advanced, briefly
 
-## 2:15 — Compare, then hand it over
+Open **Advanced** in the header. Click **Judge this pair** if you have time.
 
-Open **Compare**. Click **Judge this pair**.
+**“Compare is optional. Same script, two agents. The everyday path is still one call.”**
 
-**“Northline leads. Compare stays on Super, one call per transcript, so the pack still fits the demo cap. A gap of three points or less is a tie.”**
-
-Back on the scorecard, or from the score you still have, click **Copy link** or **Copy report**. **“The link is the scorecard. There is no account.”**
+Back on the result, open **Share this score** only if a link is useful. **“You can hand someone the score. There is no account.”**
 
 ## 2:35 — Close
 
 Scroll to the footer.
 
-**“Powered by Cozzo. This scores calls. It does not change the rankings on cozzo.io.”**
+**“Powered by Cozzo. Powered by NVIDIA Nemotron on Nebius. This scores calls. It does not change the rankings on cozzo.io.”**
 
 Stop. Do not add a credits roll.

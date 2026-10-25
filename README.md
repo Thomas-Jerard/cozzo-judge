@@ -37,7 +37,7 @@ npm run build
 npm start
 ```
 
-The dental sample is loaded on **Score a call**. **Compare** loads both providers for that script. **Run all three scenarios** scores the pack.
+The main path is three steps: pick a call, judge it, read the result. Compare, the scenario pack, audio JSON, and the model picker sit under **Advanced**.
 
 ## Environment
 
@@ -60,7 +60,7 @@ Live scoring is capped so a public demo cannot spend the Nebius balance. Mock sc
 
 - 10 live scorecards per visitor IP per rolling hour (`LIVE_IP_HOURLY_CAP`).
 - 300 live scorecards per UTC day across everyone (`LIVE_DAILY_CAP`).
-- A Super score on **Score a call** counts as 2 (Nano triage plus the Super scorecard). Any other model counts as 1. **Ask Ultra** counts as 1. **Fix the prompt** counts as 2 (the rewrite, then the rescore). **Compare** counts as 2, one Super scorecard each, with no Nano step. **Run all three scenarios** is three compares, so it counts as 6.
+- A Super score on **Judge a call** counts as 2 (Nano triage plus the Super scorecard). Any other model counts as 1. **Ask for a second opinion** (Ultra) counts as 1. **Fix the prompt** counts as 2 (the rewrite, then the rescore). **Compare** counts as 2, one Super scorecard each, with no Nano step. **Run all three scenarios** is three compares, so it counts as 6.
 - A request that does not fit in the remaining budget is refused as a whole. Nothing is reserved.
 - The response is HTTP 429 with a short explanation. The page shows that message and a button to score the same call, pair, or pack with the mock judge.
 
@@ -70,7 +70,7 @@ The counters are in memory on each server instance. Vercel does not share that m
 
 ```
 Browser
-  Score a call · Compare · scenario pack · /card#… (the scorecard is in the URL)
+  Judge a call · Advanced (compare, pack) · /card#… (the scorecard is in the URL)
         │
         ▼
 POST /api/judge          stream: NDJSON status, then the scorecard
