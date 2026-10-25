@@ -11,7 +11,9 @@ import {
   parseAppeal,
   parseRepair,
   parseTriage,
+  REPAIR_JSON_SCHEMA,
   repairMessages,
+  strictRepairMessages,
   triageMessages,
   usesBench,
   type AppealReport,
@@ -26,6 +28,12 @@ import { findSampleFixture } from "./samples/fixtures";
 
 const NANO_TIMEOUT_MS = 15_000;
 const NANO_MAX_TOKENS = 400;
+/** Propose, one stricter retry, and the rescore stay inside the 120s route. */
+const REPAIR_PROPOSE_MS = 40_000;
+const REPAIR_RETRY_MS = 32_000;
+const REPAIR_RESCORE_MS = 40_000;
+const REPAIR_PROPOSE_TOKENS = 900;
+const REPAIR_RETRY_TOKENS = 600;
 
 export async function scoreWithBench(
   input: JudgeInput,
@@ -35,6 +43,9 @@ export async function scoreWithBench(
     onStatus?: (step: BenchStep) => void;
     /** Live repairs already spent their second call on the rewrite, so the rescore skips Nano. */
     skipTriage?: boolean;
+    timeoutMs?: number;
+    /** Repair rescore skips the extra JSON retry so the route stays inside 120 seconds. */
+    retryInvalidJson?: boolean;
   },
 ): Promise<{ scorecard: Scorecard; bench: BenchReport }> {
   const pipelined = usesBench(options.modelId) && !options.skipTriage;
@@ -55,8 +66,12 @@ export async function scoreWithBench(
     fixtures: findSampleFixture,
     complete:
       options.mode === "live"
-        ? (messages) => completeWithNebius(options.modelId, messages)
+        ? (messages) =>
+            completeWithNebius(options.modelId, messages, {
+              timeoutMs: options.timeoutMs,
+            })
         : undefined,
+    retryInvalidJson: options.retryInvalidJson,
   });
   options.onStatus?.("quotes");
   const bench: BenchReport = {
@@ -125,36 +140,36 @@ export async function repairWithSuper(
   }
   onStatus?.("propose");
   const proposeStarted = Date.now();
+  const callerLines = callers.map((turn) => turn.text);
   const draft =
     input.mode === "mock"
       ? mockRepair(input.transcript, input.requirements)
-      : await completeJson(
-          input.modelId,
-          repairMessages(
-            input.transcript,
-            input.requirements,
-            callers.length,
-            input.summary ||
-              (input.label ? `${input.label} needs a tighter prompt.` : "The scorecard needs a tighter prompt."),
-          ),
-          2_048,
-          (raw) => parseRepair(raw, callers.length),
-        );
+      : await proposeLiveRepair(input, callerLines, onStatus);
   const proposeLatencyMs = input.mode === "mock" ? 0 : Date.now() - proposeStarted;
   const transcript = applyAgentLines(input.transcript, draft.agentLines);
   const label = input.label ? `${input.label} · revised agent lines` : "Revised agent lines";
   onStatus?.("rescore");
-  const scored = await scoreWithBench(
+  let scored: Awaited<ReturnType<typeof scoreWithBench>>;
+  try {
+    scored = await scoreWithBench(
     { transcript, requirements: input.requirements, label },
     {
       mode: input.mode,
       modelId: input.modelId,
       skipTriage: input.mode === "live",
+      timeoutMs: input.mode === "live" ? REPAIR_RESCORE_MS : undefined,
+      retryInvalidJson: false,
       onStatus: (step) => {
         if (step === "score" || step === "quotes") onStatus?.(step === "score" ? "rescore" : "quotes");
       },
     },
-  );
+    );
+  } catch (error) {
+    if (isTimeoutError(error)) {
+      throw new Error("Scoring the rewrite did not finish in time. Try Fix the prompt again.");
+    }
+    throw error;
+  }
   return {
     prompt: draft.prompt,
     changes: draft.changes,
@@ -192,6 +207,61 @@ async function liveTriage(transcript: string, requirements: string) {
       skipReason: error instanceof Error ? error.message.slice(0, 180) : "Nano did not return a risk line.",
     };
   }
+}
+
+async function proposeLiveRepair(
+  input: JudgeInput & { modelId: string; summary?: string; label?: string },
+  callerLines: string[],
+  onStatus?: (step: BenchStep) => void,
+) {
+  const summary =
+    input.summary ||
+    (input.label ? `${input.label} needs a tighter prompt.` : "The scorecard needs a tighter prompt.");
+  const parse = (raw: string) => parseRepair(raw, callerLines.length);
+  try {
+    return await completeRepair(input.modelId, repairMessages(input.transcript, input.requirements, callerLines, summary), {
+      maxTokens: REPAIR_PROPOSE_TOKENS,
+      timeoutMs: REPAIR_PROPOSE_MS,
+    }, parse);
+  } catch (error) {
+    onStatus?.("retry");
+    try {
+      return await completeRepair(
+        input.modelId,
+        strictRepairMessages(input.requirements, callerLines),
+        { maxTokens: REPAIR_RETRY_TOKENS, timeoutMs: REPAIR_RETRY_MS },
+        parse,
+      );
+    } catch (retryError) {
+      if (isTimeoutError(retryError) || isTimeoutError(error)) {
+        throw new Error("The rewrite did not finish in time. Try Fix the prompt again.");
+      }
+      throw retryError;
+    }
+  }
+}
+
+async function completeRepair<T>(
+  modelId: string,
+  messages: { role: "system" | "user"; content: string }[],
+  limits: { maxTokens: number; timeoutMs: number },
+  parse: (raw: string) => T,
+): Promise<T> {
+  const completion = await completeWithNebius(modelId, messages, {
+    maxTokens: limits.maxTokens,
+    timeoutMs: limits.timeoutMs,
+    jsonSchema: {
+      name: REPAIR_JSON_SCHEMA.name,
+      strict: REPAIR_JSON_SCHEMA.strict,
+      schema: REPAIR_JSON_SCHEMA.schema as unknown as Record<string, unknown>,
+    },
+    disableThinking: true,
+  });
+  return parse(completion.content);
+}
+
+function isTimeoutError(error: unknown): boolean {
+  return error instanceof Error && /timed out/i.test(error.message);
 }
 
 async function completeJson<T>(

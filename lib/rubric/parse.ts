@@ -24,20 +24,28 @@ export class JsonScorecardError extends Error {
   }
 }
 
-/** Drop reasoning channels and markdown fences, then parse the scorecard object. */
-export function extractJsonObject(raw: string): unknown {
-  const stripped = balancedObjects(stripModelWrapping(raw));
-  const fromRaw = stripped.length > 0 ? [] : balancedObjects(raw);
-  const candidates = stripped.length > 0 ? stripped : fromRaw;
-  const scorecard = candidates.find(hasDimensions) ?? candidates.find(isRecord);
-  if (!scorecard) {
+/**
+ * Drop reasoning channels and markdown fences, then parse a JSON object.
+ * `prefer` wins when several objects are present. Scorecards still prefer an
+ * object that has `dimensions` when no preference is given.
+ */
+export function extractJsonObject(raw: string, prefer?: (value: unknown) => boolean): unknown {
+  const fenced = fencedBlocks(raw);
+  const stripped = stripModelWrapping(raw);
+  let candidates = [...fenced, stripped].flatMap(collectObjects);
+  if (candidates.length === 0) candidates = collectObjects(raw);
+  const chosen =
+    (prefer ? candidates.find(prefer) : undefined) ??
+    candidates.find(hasDimensions) ??
+    candidates.find(isRecord);
+  if (!chosen) {
     throw new JsonScorecardError(
       candidates.length === 0
         ? "The model did not return a JSON scorecard."
         : "The model returned a scorecard that was not valid JSON.",
     );
   }
-  return scorecard;
+  return chosen;
 }
 
 function hasDimensions(value: unknown): boolean {
@@ -61,23 +69,81 @@ function stripModelWrapping(raw: string): string {
   return text.trim();
 }
 
-function balancedObjects(text: string): unknown[] {
+function fencedBlocks(raw: string): string[] {
+  return [...raw.matchAll(/```(?:json|javascript|js)?\s*([\s\S]*?)```/gi)].map((match) => match[1] ?? "");
+}
+
+function collectObjects(text: string): unknown[] {
   const found: unknown[] = [];
   let index = 0;
   while (index < text.length) {
     const start = text.indexOf("{", index);
     if (start === -1) break;
     const slice = firstBalancedObject(text.slice(start));
-    if (!slice) break;
-    try {
-      found.push(JSON.parse(slice));
-    } catch {
-      index = start + 1;
+    if (slice) {
+      const parsed = parseLoose(slice);
+      if (parsed !== undefined) found.push(parsed);
+      index = start + slice.length;
       continue;
     }
-    index = start + slice.length;
+    const closed = closeTruncated(text.slice(start));
+    if (closed) {
+      const parsed = parseLoose(closed);
+      if (parsed !== undefined) found.push(parsed);
+    }
+    break;
   }
   return found;
+}
+
+/** Accept trailing commas and smart quotes around an otherwise JSON object. */
+function parseLoose(slice: string): unknown | undefined {
+  const attempts = [
+    slice,
+    slice.replace(/,\s*([}\]])/g, "$1"),
+    slice.replace(/[“”]/g, '"').replace(/,\s*([}\]])/g, "$1"),
+  ];
+  for (const attempt of attempts) {
+    try {
+      return JSON.parse(attempt);
+    } catch {
+      // Try the next loosening.
+    }
+  }
+  return undefined;
+}
+
+/** Close a JSON object the model started and then cut off. */
+function closeTruncated(text: string): string | null {
+  const start = text.indexOf("{");
+  if (start === -1) return null;
+  let inString = false;
+  let escape = false;
+  const stack: string[] = [];
+  let end = start;
+  for (let index = start; index < text.length; index += 1) {
+    const char = text[index];
+    end = index;
+    if (inString) {
+      if (escape) escape = false;
+      else if (char === "\\") escape = true;
+      else if (char === '"') inString = false;
+      continue;
+    }
+    if (char === '"') inString = true;
+    else if (char === "{" || char === "[") stack.push(char);
+    else if (char === "}" || char === "]") {
+      stack.pop();
+      if (stack.length === 0) return null;
+    }
+  }
+  if (stack.length === 0) return null;
+  let closed = text.slice(start, end + 1);
+  if (inString) closed += '"';
+  for (let index = stack.length - 1; index >= 0; index -= 1) {
+    closed += stack[index] === "{" ? "}" : "]";
+  }
+  return closed;
 }
 
 function firstBalancedObject(text: string): string | null {

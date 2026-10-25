@@ -68,6 +68,33 @@ describe("prompt repair", () => {
     assert.match(revised, /\$189/);
   });
 
+  it("reads a rewrite from a fence, a reasoning channel, and trailing text", () => {
+    const draft = parseRepair(
+      `<think>The $49 price is invented.</think>\n\`\`\`json\n{"prompt":"Stay on script.","changes":["Drop the invented price."],"agentLines":["The exam is $189."]}\n\`\`\`\nThat should do it.`,
+      1,
+    );
+    assert.equal(draft.prompt, "Stay on script.");
+    assert.deepEqual(draft.agentLines, ["The exam is $189."]);
+  });
+
+  it("closes a rewrite the model cut off, and ignores a scorecard in the same text", () => {
+    const draft = parseRepair(
+      '{"summary":"ok","dimensions":[]}\n{"prompt":"Stay on script.","changes":["Drop the invented price.",],"agentLines":["The exam is $189."',
+      1,
+    );
+    assert.equal(draft.agentLines[0], "The exam is $189.");
+    assert.equal(draft.changes[0], "Drop the invented price.");
+  });
+
+  it("accepts agent_lines and line objects", () => {
+    const draft = parseRepair(
+      '{"prompt":"Stay on script.","changes":"Drop the price.","agent_lines":[{"line":"Agent: The exam is $189."}]}',
+      1,
+    );
+    assert.equal(draft.agentLines[0], "The exam is $189.");
+    assert.equal(draft.changes[0], "Drop the price.");
+  });
+
   it("fits a short rewrite to the caller count", () => {
     const draft = parseRepair(
       '{"prompt":"Stay on script.","changes":["Drop the invented price."],"agentLines":["The exam is $189."]}',
