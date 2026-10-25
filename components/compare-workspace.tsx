@@ -4,16 +4,15 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { AppealPanel } from "@/components/bench-panel";
+import { CallResult } from "@/components/call-result";
 import { JudgeSettings, modeHelp } from "@/components/judge-settings";
 import { LimitNotice } from "@/components/limit-notice";
-import { ScorecardView } from "@/components/scorecard-view";
 import { TranscriptField } from "@/components/transcript-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  bandColor,
   isRateLimitError,
   postJson,
   readStatus,
@@ -201,17 +200,17 @@ export function CompareWorkspace() {
     }
   }
 
-  const live = mode === "live" || (mode === "auto" && status?.keyConfigured);
   const left = pair?.scorecards[0];
   const right = pair?.scorecards[1];
   const lead = left && right ? leadOf(left, right) : null;
 
   return (
     <div className="mx-auto max-w-6xl px-5 py-8 sm:px-6">
-      <p className="text-xs font-medium tracking-[0.16em] text-primary uppercase">Two providers</p>
-      <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Same script. Two agents.</h1>
-      <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-        Run one scenario side by side, or score the whole synthetic pack. A gap of three points or less is a tie.
+      <p className="text-sm text-muted-foreground">Advanced</p>
+      <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Compare two agents</h1>
+      <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground">
+        Optional. The main path is one call at a time. Here, the same script is scored for two agents. A gap of three
+        points or less is a tie.
       </p>
 
       <div className="mt-6 flex flex-wrap gap-2">
@@ -269,22 +268,37 @@ export function CompareWorkspace() {
         />
       </div>
 
-      <div className="mt-6 grid gap-4">
-        <JudgeSettings status={status} model={model} mode={mode} onModel={setModel} onMode={setMode} />
-        <p className="text-xs leading-relaxed text-muted-foreground">{modeHelp(status, mode)}</p>
-        <div className="flex flex-wrap gap-3">
-          <Button type="button" size="lg" className="h-10 px-4" disabled={loading || packLoading} onClick={() => judgePair()}>
+      <details className="mt-8 border-t border-border pt-6">
+        <summary className="cursor-pointer text-base font-medium">Model and connection</summary>
+        <div className="mt-6 grid gap-4">
+          <JudgeSettings status={status} model={model} mode={mode} onModel={setModel} onMode={setMode} />
+          <p className="text-sm leading-relaxed text-muted-foreground">{modeHelp(status, mode)}</p>
+        </div>
+      </details>
+
+      <div className="mt-8 grid gap-4">
+        <div className="flex flex-col items-start gap-4">
+          <Button type="button" size="lg" className="h-12 px-6 text-base" disabled={loading || packLoading} onClick={() => judgePair()}>
             {loading ? <Loader2 className="animate-spin" /> : null}
-            {loading ? (live ? "Nemotron is comparing the calls…" : "Comparing against the rubric…") : "Judge this pair"}
+            {loading ? "Comparing the calls…" : "Judge this pair"}
           </Button>
-          <Button type="button" variant="outline" className="h-10" disabled={loading || packLoading} onClick={() => runPack()}>
-            {packLoading ? <Loader2 className="animate-spin" /> : null}
-            Run all three scenarios
-          </Button>
+          <button
+            type="button"
+            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+            disabled={loading || packLoading}
+            onClick={() => runPack()}
+          >
+            {packLoading ? "Scoring the three scenarios…" : "Run all three scenarios"}
+          </button>
           {error && !rateLimited && mode !== "mock" ? (
-            <Button type="button" variant="outline" className="h-10" disabled={loading || packLoading} onClick={() => judgePair("mock")}>
-              Compare with the mock judge
-            </Button>
+            <button
+              type="button"
+              className="text-sm font-medium underline-offset-4 hover:underline"
+              disabled={loading || packLoading}
+              onClick={() => judgePair("mock")}
+            >
+              Compare with the practice judge
+            </button>
           ) : null}
         </div>
         {error && rateLimited ? (
@@ -312,24 +326,13 @@ export function CompareWorkspace() {
 
       {left && right && lead ? (
         <section id="comparison" className="mt-10 grid gap-6">
-          <div className="rounded-2xl bg-card px-5 py-4 ring-1 ring-foreground/10">
-            <p className="text-lg font-medium">{lead.headline}</p>
-            <p className="mt-1 text-sm text-muted-foreground">{lead.detail}</p>
-            <Button
-              type="button"
-              variant="outline"
-              className="mt-3 h-9"
-              disabled={loading || packLoading || appealing}
-              onClick={() => askAppeal()}
-            >
-              {appealing ? <Loader2 className="animate-spin" /> : null}
-              Ask Ultra about the lower score
-            </Button>
+          <div className="grid gap-3">
+            <p className="text-2xl font-semibold tracking-tight">{lead.headline}</p>
+            <p className="text-base leading-relaxed text-muted-foreground">{lead.detail}</p>
           </div>
-          {appeal ? <AppealPanel appeal={appeal} /> : null}
-          <div className="overflow-x-auto rounded-2xl bg-card ring-1 ring-foreground/10">
+          <div className="overflow-x-auto">
             <table className="w-full min-w-[36rem] text-sm">
-              <thead className="text-left text-xs tracking-wide text-muted-foreground uppercase">
+              <thead className="text-left text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3 font-medium">Dimension</th>
                   <th className="px-4 py-3 font-medium">{left.call.label}</th>
@@ -346,7 +349,7 @@ export function CompareWorkspace() {
                       <td className="px-4 py-3">{dimension.name}</td>
                       <td className="px-4 py-3 tabular-nums">{a}</td>
                       <td className="px-4 py-3 tabular-nums">{b}</td>
-                      <td className="px-4 py-3 tabular-nums" style={{ color: bandColor(Math.max(a, b)) }}>
+                      <td className="px-4 py-3 tabular-nums">
                         {a === b ? "0" : a > b ? `+${a - b} left` : `+${b - a} right`}
                       </td>
                     </tr>
@@ -365,9 +368,23 @@ export function CompareWorkspace() {
               </tbody>
             </table>
           </div>
-          <div className="grid gap-6 lg:grid-cols-2">
-            <ScorecardView card={left} mark={lead.markLeft} />
-            <ScorecardView card={right} mark={lead.markRight} />
+          <details>
+            <summary className="cursor-pointer text-base font-medium">Second opinion</summary>
+            <div className="mt-4 grid gap-4">
+              <button
+                type="button"
+                className="w-fit text-sm font-medium underline-offset-4 hover:underline"
+                disabled={loading || packLoading || appealing}
+                onClick={() => askAppeal()}
+              >
+                {appealing ? "Reading the appeal…" : "Ask for a second opinion on the lower score"}
+              </button>
+              {appeal ? <AppealPanel appeal={appeal} /> : null}
+            </div>
+          </details>
+          <div className="grid gap-12 lg:grid-cols-2">
+            <CallResult card={left} />
+            <CallResult card={right} />
           </div>
         </section>
       ) : null}

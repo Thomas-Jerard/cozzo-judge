@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AppealPanel, BenchPanel } from "@/components/bench-panel";
-import { ScorecardView } from "@/components/scorecard-view";
+import { CallResult } from "@/components/call-result";
 import { decodeCardHash, type SharedCard } from "@/lib/share";
 
 export function CardView() {
@@ -36,8 +35,8 @@ export function CardView() {
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
           Score a call, then choose Copy link. The card is stored in the URL itself, so there is no account and no database.
         </p>
-        <Link href="/score?sample=dental" className="mt-6 inline-block text-sm font-medium text-primary hover:underline">
-          Score the dental sample
+        <Link href="/score?sample=dental" className="mt-6 inline-block text-sm font-medium underline-offset-4 hover:underline">
+          Judge a call
         </Link>
       </div>
     );
@@ -59,36 +58,23 @@ export function CardView() {
   }
 
   return (
-    <div className="mx-auto grid max-w-3xl gap-4 px-5 py-10">
-      <div>
-        <p className="text-xs font-medium tracking-[0.16em] text-primary uppercase">Shared scorecard</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">{card.scorecard.call.label || "Call"}</h1>
-      </div>
-      {card.bench ? <BenchPanel bench={card.bench} verdict={card.scorecard.verdict} /> : null}
-      {card.appeal ? (
-        <AppealPanel
-          appeal={{
-            ...card.appeal,
-            provider: card.appeal.provider,
-          }}
-        />
-      ) : null}
-      {card.repair ? (
-        <section className="rounded-2xl bg-card p-4 ring-1 ring-foreground/10">
-          <p className="text-xs font-medium tracking-[0.16em] text-primary uppercase">Revised agent lines</p>
-          <p className="mt-2 text-2xl font-semibold tabular-nums">
-            {card.repair.before} <span className="text-muted-foreground">→</span> {card.repair.after}
-          </p>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{card.repair.note}</p>
-          <p className="mt-3 text-sm leading-relaxed">{card.repair.prompt}</p>
-          <ul className="mt-3 list-disc space-y-1 pl-4 text-sm text-muted-foreground">
-            {card.repair.changes.map((change) => (
-              <li key={change}>{change}</li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-      <ScorecardView card={card.scorecard} />
+    <div className="mx-auto max-w-2xl px-5 py-10 sm:px-6 sm:py-14">
+      <CallResult
+        card={card.scorecard}
+        bench={card.bench}
+        appeal={card.appeal}
+        beforeScore={card.repair?.before}
+        repair={
+          card.repair
+            ? {
+                prompt: card.repair.prompt,
+                changes: card.repair.changes,
+                transcript: "",
+                note: card.repair.note,
+              }
+            : null
+        }
+      />
     </div>
   );
 }
