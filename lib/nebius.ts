@@ -40,9 +40,19 @@ export function resolveRequestMode(requested: unknown): "live" | "mock" {
   return runtime.defaultMode === "live" && runtime.keyConfigured ? "live" : "mock";
 }
 
+export interface JsonSchemaFormat {
+  name: string;
+  strict?: boolean;
+  schema: Record<string, unknown>;
+}
+
 export interface CompletionOptions {
   maxTokens?: number;
   timeoutMs?: number;
+  /** Token Factory structured output. Falls back to json_object when Super rejects the schema. */
+  jsonSchema?: JsonSchemaFormat;
+  /** Ask Nemotron to skip its reasoning channel so the JSON fits in the token cap. */
+  disableThinking?: boolean;
 }
 
 export async function completeWithNebius(
@@ -60,25 +70,11 @@ export async function completeWithNebius(
   const timeoutMs = options?.timeoutMs ?? TOKEN_FACTORY_TIMEOUT_MS;
   const payload = {
     model: model.id,
-    temperature: 0.1,
+    temperature: options?.disableThinking ? 0 : 0.1,
     max_tokens: options?.maxTokens ?? 4096,
     messages,
   };
-
-  let response = await postCompletion(base, apiKey, {
-    ...payload,
-    response_format: { type: "json_object" },
-  }, timeoutMs);
-
-  if (response.status === 400) {
-    const detail = await response.text();
-    if (/response_format|json_object/i.test(detail)) {
-      response = await postCompletion(base, apiKey, payload, timeoutMs);
-    } else {
-      throw new Error(cleanProviderError(detail, response.status));
-    }
-  }
-
+  const response = await postJsonCompletion(base, apiKey, payload, timeoutMs, options);
   if (!response.ok) {
     throw new Error(cleanProviderError(await response.text(), response.status));
   }
@@ -110,6 +106,53 @@ export async function completeWithNebius(
 
 export function tokenFactoryBaseUrl(): string {
   return (process.env.NEBIUS_BASE_URL?.trim() || TOKEN_FACTORY_BASE_URL).replace(/\/$/, "");
+}
+
+async function postJsonCompletion(
+  base: string,
+  apiKey: string,
+  payload: Record<string, unknown>,
+  timeoutMs: number,
+  options?: CompletionOptions,
+): Promise<Response> {
+  const thinking = options?.disableThinking
+    ? { extra_body: { chat_template_kwargs: { enable_thinking: false } } }
+    : {};
+  const schema = options?.jsonSchema
+    ? {
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: options.jsonSchema.name,
+            strict: options.jsonSchema.strict ?? true,
+            schema: options.jsonSchema.schema,
+          },
+        },
+      }
+    : null;
+  const attempts: Record<string, unknown>[] = [];
+  if (schema) attempts.push({ ...payload, ...schema, ...thinking });
+  attempts.push({ ...payload, response_format: { type: "json_object" }, ...thinking });
+  if (options?.disableThinking || schema) {
+    attempts.push({ ...payload, response_format: { type: "json_object" } });
+  }
+  attempts.push(payload);
+
+  let lastDetail = "";
+  let lastStatus = 500;
+  for (let index = 0; index < attempts.length; index += 1) {
+    const response = await postCompletion(base, apiKey, attempts[index], timeoutMs);
+    if (response.ok || response.status !== 400) return response;
+    lastStatus = response.status;
+    lastDetail = await response.text();
+    const canRelax = /response_format|json_schema|json_object|extra_body|chat_template|enable_thinking|additional propert|unrecognized|not supported/i.test(
+      lastDetail,
+    );
+    if (!canRelax || index === attempts.length - 1) {
+      throw new Error(cleanProviderError(lastDetail, lastStatus));
+    }
+  }
+  throw new Error(cleanProviderError(lastDetail, lastStatus));
 }
 
 async function postCompletion(
@@ -145,11 +188,14 @@ function readMessageContent(
         content?: unknown;
         reasoning_content?: unknown;
         reasoning?: unknown;
+        reasoning_details?: unknown;
       }
     | undefined,
 ): string {
   const content = coerceText(message?.content).trim();
-  const reasoning = coerceText(message?.reasoning_content ?? message?.reasoning).trim();
+  const reasoning = coerceText(
+    message?.reasoning_content ?? message?.reasoning ?? message?.reasoning_details,
+  ).trim();
   if (content.includes("{") && reasoning.includes("{") && content !== reasoning) {
     return `${content}\n${reasoning}`;
   }

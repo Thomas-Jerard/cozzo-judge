@@ -24,6 +24,8 @@ export async function judgeCall(
     model: string;
     complete?: CompleteFn;
     fixtures?: FixtureLookup;
+    /** When false, a bad JSON scorecard is not sent to the model a second time. */
+    retryInvalidJson?: boolean;
   },
 ): Promise<Scorecard> {
   const requirements = input.requirements?.trim() ?? "";
@@ -94,7 +96,7 @@ export async function judgeCall(
   try {
     parsed = parseJudgment(completion.content, call);
   } catch (error) {
-    if (!(error instanceof JsonScorecardError)) throw error;
+    if (!(error instanceof JsonScorecardError) || options.retryInvalidJson === false) throw error;
     completion = asResult(await options.complete(messages));
     parsed = parseJudgment(completion.content, call);
   }

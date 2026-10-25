@@ -5,7 +5,7 @@ import type { ChatMessage, Verdict } from "./rubric";
 
 export type BenchRisk = "low" | "high";
 export type BenchAgreement = "aligned" | "split";
-export type BenchStep = "triage" | "score" | "quotes" | "propose" | "rescore";
+export type BenchStep = "triage" | "score" | "quotes" | "propose" | "retry" | "rescore";
 
 export interface TriageReport {
   risk: BenchRisk;
@@ -190,31 +190,77 @@ export function mockAppeal(card: {
   };
 }
 
+export const REPAIR_JSON_SCHEMA = {
+  name: "prompt_repair",
+  strict: true,
+  schema: {
+    type: "object",
+    additionalProperties: false,
+    required: ["prompt", "changes", "agentLines"],
+    properties: {
+      prompt: { type: "string" },
+      changes: { type: "array", items: { type: "string" } },
+      agentLines: { type: "array", items: { type: "string" } },
+    },
+  },
+} as const;
+
 export function repairMessages(
   transcript: string,
   requirements: string,
-  callerCount: number,
+  callerLines: string[],
   summary: string,
 ): ChatMessage[] {
+  const callerCount = callerLines.length;
   return [
     {
       role: "system",
       content: [
-        "You repair a voice agent's instructions after a weak score.",
-        "Return JSON only with prompt, changes, and agentLines.",
-        `agentLines must contain exactly ${callerCount} strings, one agent reply per caller turn, in the same order.`,
-        "Do not write caller lines.",
-        "Every dollar amount you speak must already appear in the requirements.",
+        "Return one JSON object and no other text. Do not add markdown or a commentary channel.",
+        "Keys are prompt, changes, and agentLines.",
+        `agentLines is an array of exactly ${callerCount} strings, one short agent reply per caller turn, in order.`,
+        "Each agent line is one sentence under 25 words. Do not write caller lines.",
+        "prompt is one replacement instruction under 40 words.",
+        "changes is at most four strings, each under 12 words.",
+        "Every dollar amount must already appear in the requirements.",
         "Do not invent insurance, a clinician, or a medical outcome.",
         "If the caller describes gas, fire, chest pain, or trouble breathing, the reply tells them to call 911.",
         'Repeat any phone number the caller gave, and use the phrase "I have you down" once.',
-        "prompt is the replacement system prompt, under 120 words.",
-        "changes is up to five short bullets.",
       ].join(" "),
     },
     {
       role: "user",
-      content: `Score summary: ${summary}\n\nRequirements:\n${clip(requirements, 8_000)}\n\nTranscript:\n${clip(transcript, 12_000)}`,
+      content: [
+        `Score summary: ${clip(summary, 400)}`,
+        "",
+        `Requirements:\n${clip(requirements, 4_000)}`,
+        "",
+        `Caller lines, in order:\n${numberedCallers(callerLines)}`,
+        "",
+        `Transcript:\n${clip(transcript, 6_000)}`,
+      ].join("\n"),
+    },
+  ];
+}
+
+/** Second attempt after the first draft was not usable JSON. Shorter on purpose. */
+export function strictRepairMessages(requirements: string, callerLines: string[]): ChatMessage[] {
+  const slots = callerLines.map(() => '"one sentence"').join(", ");
+  return [
+    {
+      role: "system",
+      content: [
+        "The previous answer was not valid JSON.",
+        "Reply with only this JSON object. No markdown. No text before or after it.",
+        `{"prompt":"one sentence","changes":["one change"],"agentLines":[${slots}]}`,
+        `agentLines must contain exactly ${callerLines.length} strings.`,
+        "Each string is under 20 words.",
+        "Quote a dollar amount only when it is written in the requirements.",
+      ].join(" "),
+    },
+    {
+      role: "user",
+      content: `Requirements:\n${clip(requirements, 2_000)}\n\nCaller lines:\n${numberedCallers(callerLines)}`,
     },
   ];
 }
@@ -222,30 +268,24 @@ export function repairMessages(
 export function parseRepair(raw: string, callerCount: number): RepairDraft {
   let record: Record<string, unknown>;
   try {
-    record = asRecord(extractJsonObject(raw));
+    record = asRecord(extractJsonObject(raw, isRepairRecord));
   } catch {
     throw new Error("The rewrite was not valid JSON. Try Fix the prompt again.");
   }
   const prompt = typeof record.prompt === "string" ? record.prompt.trim() : "";
-  const changes = Array.isArray(record.changes)
-    ? record.changes
-        .filter((item): item is string => typeof item === "string")
-        .map((item) => item.trim())
-        .filter(Boolean)
-        .slice(0, 6)
-    : [];
-  const agentLines = Array.isArray(record.agentLines)
-    ? record.agentLines
-        .filter((item): item is string => typeof item === "string")
-        .map((item) => item.replace(/^(agent|assistant)\s*:\s*/i, "").trim())
-        .filter(Boolean)
-    : [];
+  const changes = readStringList(record.changes ?? record.change).slice(0, 4);
+  const agentLines = readStringList(record.agentLines ?? record.agent_lines).map((line) =>
+    line.replace(/^(agent|assistant)\s*:\s*/i, "").trim(),
+  ).filter(Boolean);
   if (!prompt || agentLines.length === 0) {
     throw new Error("The rewrite was missing a prompt or agent lines.");
   }
-  const fitted =
-    callerCount > 0 ? fitLines(agentLines, callerCount) : agentLines.slice(0, 12);
-  return { prompt: prompt.slice(0, 1_200), changes, agentLines: fitted };
+  const fitted = callerCount > 0 ? fitLines(agentLines, callerCount) : agentLines.slice(0, 12);
+  return {
+    prompt: prompt.slice(0, 600),
+    changes,
+    agentLines: fitted.map((line) => line.slice(0, 280)),
+  };
 }
 
 export function mockRepair(transcript: string, requirements: string): RepairDraft {
@@ -318,6 +358,31 @@ export const REPAIR_NOTE =
   "These agent lines were rewritten and scored again. The caller lines are unchanged. This is not a new phone call.";
 
 export const NANO_TRIAGE_MODEL = NANO_MODEL_ID;
+
+function isRepairRecord(value: unknown): boolean {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  const lines = record.agentLines ?? record.agent_lines;
+  return typeof record.prompt === "string" && (Array.isArray(lines) || typeof lines === "string");
+}
+
+function readStringList(value: unknown): string[] {
+  if (typeof value === "string") return value.trim() ? [value.trim()] : [];
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (typeof item === "string") return item.trim();
+      if (!item || typeof item !== "object") return "";
+      const row = item as Record<string, unknown>;
+      const text = row.text ?? row.line ?? row.reply ?? row.agent;
+      return typeof text === "string" ? text.trim() : "";
+    })
+    .filter(Boolean);
+}
+
+function numberedCallers(lines: string[]): string {
+  return lines.map((line, index) => `${index + 1}. ${clip(line, 400)}`).join("\n");
+}
 
 function fitLines(lines: string[], count: number): string[] {
   const next = lines.slice(0, count);

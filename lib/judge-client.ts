@@ -31,7 +31,7 @@ export async function readStatus(): Promise<JudgeStatus> {
   return (await response.json()) as JudgeStatus;
 }
 
-export type StreamStep = "triage" | "score" | "quotes" | "propose" | "rescore";
+export type StreamStep = "triage" | "score" | "quotes" | "propose" | "retry" | "rescore";
 
 export async function postStream<T extends { type: "result" }>(
   url: string,
