@@ -17,16 +17,16 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/80 bg-background/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-5 sm:px-6">
-        <Link href="/" className="flex items-center gap-2.5 font-semibold tracking-tight">
+        <a
+          href="https://cozzo.io"
+          className="flex min-w-0 items-center gap-2.5 font-heading text-lg font-semibold tracking-tight"
+        >
           <CozzoMark />
-          <span>
+          <span className="truncate">
             Cozzo Judge
-            <span className="hidden text-sm font-normal text-muted-foreground sm:inline">
-              {" "}
-              · call scorecards
-            </span>
+            <span className="sr-only"> on cozzo.io</span>
           </span>
-        </Link>
+        </a>
         <nav aria-label="Main" className="flex items-center gap-1 sm:gap-2">
           {LINKS.map((link) => {
             const active = pathname === link.href;

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CallResult } from "@/components/call-result";
+import { CozzoCanary } from "@/components/cozzo-canary";
 import { JudgeSettings, modeHelp } from "@/components/judge-settings";
 import { LimitNotice } from "@/components/limit-notice";
 import { StepFlow } from "@/components/step-flow";
@@ -258,8 +259,9 @@ export function ScoreWorkspace() {
       <StepFlow step={flowStep} />
 
       {flowStep === 2 ? (
-        <div className="grid gap-3 py-10">
-          <h1 className="text-3xl font-semibold tracking-tight">Judging this call</h1>
+        <div className="grid justify-items-start gap-4 py-8">
+          <CozzoCanary pose="think" size={104} label="Cozzo the Canary listening to the call" />
+          <h1 className="text-3xl font-semibold tracking-tight">Cozzo is listening to the call</h1>
           <p className="text-lg leading-relaxed text-muted-foreground">{waitCopy(step, repairing)}</p>
         </div>
       ) : null}
@@ -372,16 +374,19 @@ export function ScoreWorkspace() {
               </fieldset>
             </>
           ) : (
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Paste the approved script and the call.{" "}
-              <button
-                type="button"
-                className="font-medium text-foreground underline-offset-4 hover:underline"
-                onClick={() => loadScenario(scenario)}
-              >
-                Use a sample instead
-              </button>
-            </p>
+            <div className="flex items-end gap-4">
+              <CozzoCanary pose="peek" size={88} label="Cozzo the Canary waiting for a call" />
+              <p className="pb-1 text-sm leading-relaxed text-muted-foreground">
+                Paste the approved script and the call. I’ll wait.{" "}
+                <button
+                  type="button"
+                  className="font-medium text-foreground underline-offset-4 hover:underline"
+                  onClick={() => loadScenario(scenario)}
+                >
+                  Use a sample instead
+                </button>
+              </p>
+            </div>
           )}
 
           {showEditor ? (
