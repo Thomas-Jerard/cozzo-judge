@@ -18,7 +18,7 @@ Point at Cozzo the Canary. **“Hi, I’m Cozzo. A canary in the coal mine for v
 
 Point at the numbered list, then at the quiet line under the button. **“The score is powered by NVIDIA Nemotron on Nebius.”**
 
-Click **Judge a call**.
+**Test your own call** is the paste path. This demo uses a sample. Click **Judge a call**.
 
 ## 0:20 — Pick a call
 
@@ -32,7 +32,7 @@ Click **Judge this call**. Step 2 should say **Cozzo is listening to the call**,
 
 ## 0:45 — The result
 
-When the result lands, stay at the top. Point at Cozzo, the number, the word Fail, the sentence, and the short list of issues. The canary keeps one pose. The ring around it changes with the verdict.
+When the result lands, stay at the top. Point at Cozzo, the score ring, the word Fail, and the sentence. The canary keeps one pose. The ring around the canary, and the score ring, change with the verdict.
 
 **“The score is the big thing. Fail is in plain words. These are the issues: an invented price, Medicaid, and a dentist who is out.”**
 
@@ -40,13 +40,13 @@ Click **Fix the prompt**. It is the only filled button on this screen.
 
 ## 1:20 — The rewrite
 
-Wait on that same button. The line under it says a shorter prompt is being written, then scored. When the number changes, point at the line that says the first score and the rewrite score.
+Wait on that same button. The line under it says a shorter prompt is being written, then scored. When the number changes, point at the two rings and the +N.
 
 **“The caller’s words stayed. The agent lines were rewritten, and the score moved. This is not a new phone call.”**
 
 ## 1:50 — The detail, only if you open it
 
-Open **The five checks** and read one quote. **“The line is from the call.”**
+The five checks are the bars beside the score: task 30, facts 25, handoff 20, hallucination 15, tone 10. Open one bar and read a quote. **“The line is from the call.”**
 
 Open **How the models worked**. **“Nano did the fast read. Super wrote the number. Both ran on Nebius Token Factory, and the key stayed on the server.”**
 

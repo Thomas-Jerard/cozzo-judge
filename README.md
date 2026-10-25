@@ -37,7 +37,7 @@ npm run build
 npm start
 ```
 
-The main path is three steps: pick a call, judge it, read the result. Compare, the scenario pack, audio JSON, and the model picker sit under **Advanced**.
+The main path is three steps: pick a call, judge it, read the result. **Test your own call** on the home page and on step 1 takes a pasted transcript (`Agent:` / `Caller:` lines, or the same WebVTT and JSON the parser already accepts) plus an optional agent script and optional business facts. Compare, the scenario pack, audio JSON, and the model picker sit under **Advanced**.
 
 ## Environment
 

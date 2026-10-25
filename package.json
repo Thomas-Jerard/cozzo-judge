@@ -9,7 +9,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test tests/rubric.test.ts tests/rate-limit.test.ts tests/bench.test.ts",
+    "test": "tsx --test tests/rubric.test.ts tests/rate-limit.test.ts tests/bench.test.ts tests/own-call.test.ts",
     "live-smoke": "tsx scripts/live-smoke.mjs"
   },
   "dependencies": {
