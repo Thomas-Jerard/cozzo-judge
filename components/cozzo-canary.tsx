@@ -9,9 +9,9 @@ export type CanaryPose = keyof typeof POSES;
 export type CanaryAccent = "pass" | "review" | "fail";
 
 const ACCENT: Record<CanaryAccent, string> = {
-  pass: "bg-[rgba(255,201,39,0.2)] shadow-[0_0_0_6px_rgba(255,201,39,0.45)]",
-  review: "bg-[rgba(255,179,138,0.28)] shadow-[0_0_0_6px_rgba(255,179,138,0.55)]",
-  fail: "bg-[rgba(190,18,60,0.1)] shadow-[0_0_0_6px_rgba(190,18,60,0.28)]",
+  pass: "bg-[rgba(4,120,87,0.12)] shadow-[0_0_0_6px_rgba(4,120,87,0.38)]",
+  review: "bg-[rgba(255,201,39,0.24)] shadow-[0_0_0_6px_#ffc927]",
+  fail: "bg-[rgba(255,179,138,0.35)] shadow-[0_0_0_6px_rgba(190,18,60,0.45)]",
 };
 
 export function CozzoCanary({
