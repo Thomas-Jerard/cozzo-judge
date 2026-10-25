@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { AppealPanel } from "@/components/bench-panel";
+import { CozzoCanary } from "@/components/cozzo-canary";
 import { CallResult } from "@/components/call-result";
 import { JudgeSettings, modeHelp } from "@/components/judge-settings";
 import { LimitNotice } from "@/components/limit-notice";
@@ -206,8 +207,13 @@ export function CompareWorkspace() {
 
   return (
     <div className="mx-auto max-w-6xl px-5 py-8 sm:px-6">
-      <p className="text-sm text-muted-foreground">Advanced</p>
-      <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Compare two agents</h1>
+      <div className="flex items-end gap-4">
+        <CozzoCanary pose="idle" size={72} label="Cozzo the Canary" />
+        <div>
+          <p className="text-sm text-muted-foreground">Advanced</p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">Compare two agents</h1>
+        </div>
+      </div>
       <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground">
         Optional. The main path is one call at a time. Here, the same script is scored for two agents. A gap of three
         points or less is a tie.

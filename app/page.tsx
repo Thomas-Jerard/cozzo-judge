@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CozzoCanary } from "@/components/cozzo-canary";
 import { buttonVariants } from "@/components/ui/button";
 import { DIMENSIONS, PASS_AT, REVIEW_AT } from "@/lib/rubric";
 import { SCENARIOS } from "@/lib/samples";
@@ -7,7 +8,16 @@ import { cn } from "@/lib/utils";
 export default function HomePage() {
   return (
     <div className="mx-auto max-w-2xl px-5 py-14 sm:px-6 sm:py-20">
-      <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl sm:leading-[1.1]">
+      <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-end">
+        <CozzoCanary pose="wave" size={120} label="Cozzo the Canary waving hello" />
+        <div className="grid gap-1 pb-1">
+          <p className="font-heading text-lg font-semibold">Hi, I’m Cozzo the Canary.</p>
+          <p className="text-base leading-relaxed text-muted-foreground">
+            A canary in the coal mine for voice agents.
+          </p>
+        </div>
+      </div>
+      <h1 className="mt-8 text-4xl font-semibold tracking-tight text-balance sm:text-5xl sm:leading-[1.1]">
         Did the agent do the job, or make it up?
       </h1>
       <p className="mt-5 text-lg leading-relaxed text-muted-foreground">

@@ -1,6 +1,7 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
+import { CozzoCanary, type CanaryAccent } from "@/components/cozzo-canary";
 import { Button } from "@/components/ui/button";
 import type { AppealReport, BenchReport } from "@/lib/bench";
 import { bandColor, downloadJson, verdictLabel } from "@/lib/judge-client";
@@ -49,12 +50,17 @@ export function CallResult({
     <article id="result" className="grid gap-8">
       <header className="grid gap-4">
         <p className="text-sm text-muted-foreground">{card.call.label || "This call"}</p>
-        <p className="text-7xl font-semibold tracking-tight tabular-nums sm:text-8xl" style={{ color: tone }}>
-          {card.overall}
-        </p>
-        <h1 className="text-3xl font-semibold tracking-tight" style={{ color: tone }}>
-          {verdictLabel(card.verdict)}
-        </h1>
+        <div className="flex flex-wrap items-end gap-4 sm:gap-6">
+          <CozzoCanary pose="idle" size={96} accent={card.verdict} label={canaryLabel(card.verdict)} />
+          <div className="grid gap-2">
+            <p className="text-7xl font-semibold tracking-tight tabular-nums sm:text-8xl" style={{ color: tone }}>
+              {card.overall}
+            </p>
+            <h1 className="text-3xl font-semibold tracking-tight" style={{ color: tone }}>
+              {verdictLabel(card.verdict)}
+            </h1>
+          </div>
+        </div>
         <p className="max-w-xl text-lg leading-relaxed">{card.summary}</p>
       </header>
 
@@ -260,6 +266,12 @@ function BenchCopy({ bench, verdict }: { bench: BenchReport; verdict: Scorecard[
       </p>
     </>
   );
+}
+
+function canaryLabel(verdict: CanaryAccent): string {
+  if (verdict === "pass") return "Cozzo the Canary, pleased with this call";
+  if (verdict === "review") return "Cozzo the Canary, asking for another look";
+  return "Cozzo the Canary, flagging this call";
 }
 
 export function topIssues(card: Scorecard): string[] {
