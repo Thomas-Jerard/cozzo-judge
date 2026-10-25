@@ -22,7 +22,7 @@ export default function HomePage() {
         Did the agent do the job, or make it up?
       </h1>
       <p className="measure mt-5 text-lg leading-relaxed text-muted-foreground">
-        Pick a call, or paste one. Judge it against the script the business approved. Then read the score.
+        Paste your own call, or start from a sample. Judge it against the script the business approved. Then read the score.
       </p>
       <ol className="mt-8 grid gap-4 text-base xl:grid-cols-3" aria-label="How a score works">
         <li className="surface-card flex gap-4">
@@ -38,8 +38,14 @@ export default function HomePage() {
           <span>Read the score, the verdict, and the main issues. Fix the prompt if you want a rewrite.</span>
         </li>
       </ol>
-      <div className="mt-10">
-        <Link href="/score?sample=dental" className={cn(buttonVariants({ size: "lg" }), "h-12 px-6 text-base")}>
+      <div className="mt-10 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+        <Link href="/score?own=1" className={cn(buttonVariants({ size: "lg" }), "h-12 px-6 text-base")}>
+          Test your own call
+        </Link>
+        <Link
+          href="/score?sample=dental"
+          className={cn(buttonVariants({ variant: "outline", size: "lg" }), "h-12 px-6 text-base")}
+        >
           Judge a call
         </Link>
       </div>

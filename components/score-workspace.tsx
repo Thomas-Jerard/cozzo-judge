@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CallResult } from "@/components/call-result";
 import { CozzoCanary } from "@/components/cozzo-canary";
 import { PageShell } from "@/components/page-shell";
@@ -24,19 +24,27 @@ import {
   type StreamStep,
 } from "@/lib/judge-client";
 import { DEFAULT_MODEL_ID } from "@/lib/models";
+import { combineBrief, OWN_EXAMPLE, transcriptHint, validateOwnCall } from "@/lib/own-call";
 import type { Scorecard } from "@/lib/rubric";
 import { encodeCardLink, reportMarkdown, type SharedCard } from "@/lib/share";
 import { SCENARIOS, scenarioById, type SampleProvider, type SampleScenario } from "@/lib/samples";
 
 export function ScoreWorkspace() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const requested = searchParams.get("sample");
+  const ownParam = searchParams.get("own") === "1";
+  const routeKey = ownParam ? "own" : (requested ?? "dental");
+  const initialScenario = scenarioById(requested);
   const [status, setStatus] = useState<JudgeStatus | null>(null);
-  const [scenario, setScenario] = useState<SampleScenario>(() => scenarioById(requested));
-  const [provider, setProvider] = useState<SampleProvider>(() => scenarioById(requested).providers[0]);
+  const [scenario, setScenario] = useState<SampleScenario>(initialScenario);
+  const [provider, setProvider] = useState<SampleProvider>(initialScenario.providers[0]);
   const [format, setFormat] = useState<"plain" | "json">("plain");
-  const [requirements, setRequirements] = useState(scenario.requirements);
-  const [transcript, setTranscript] = useState(provider.plain);
+  const [requirements, setRequirements] = useState(ownParam ? "" : initialScenario.requirements);
+  const [transcript, setTranscript] = useState(ownParam ? "" : initialScenario.providers[0].plain);
+  const [agentScript, setAgentScript] = useState("");
+  const [businessFacts, setBusinessFacts] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
   const [model, setModel] = useState(DEFAULT_MODEL_ID);
   const [mode, setMode] = useState<RequestMode>("auto");
   const [card, setCard] = useState<Scorecard | null>(null);
@@ -53,32 +61,67 @@ export function ScoreWorkspace() {
   const [loading, setLoading] = useState(false);
   const [appealing, setAppealing] = useState(false);
   const [repairing, setRepairing] = useState(false);
-  const [usingSample, setUsingSample] = useState(true);
+  const [ownMode, setOwnMode] = useState(ownParam);
+  const [usingSample, setUsingSample] = useState(!ownParam);
   const [editing, setEditing] = useState(false);
-  const seenSample = useRef<string | null>(null);
+  const seenRoute = useRef<string | null>(null);
 
   useEffect(() => {
-    const id = requested ?? "dental";
-    if (seenSample.current === null) {
-      seenSample.current = id;
+    if (seenRoute.current === null) {
+      seenRoute.current = routeKey;
       return;
     }
-    if (seenSample.current === id) return;
-    seenSample.current = id;
-    const next = scenarioById(id);
-    setScenario(next);
-    setProvider(next.providers[0]);
-    setFormat("plain");
-    setRequirements(next.requirements);
-    setTranscript(next.providers[0].plain);
-    setCard(null);
-    setBench(null);
-    setAppeal(null);
-    setRepair(null);
-    setError(null);
-    setNotice(null);
-    setUsingSample(true);
-  }, [requested]);
+    if (seenRoute.current === routeKey) return;
+    const own = ownParam;
+    const sampleId = requested;
+    const key = routeKey;
+    seenRoute.current = key;
+    queueMicrotask(() => {
+      if (seenRoute.current !== key) return;
+      if (own) {
+        setOwnMode(true);
+        setUsingSample(false);
+        setEditing(true);
+        setAgentScript("");
+        setBusinessFacts("");
+        setRequirements("");
+        setTranscript("");
+        setFormError(null);
+        setFormat("plain");
+        setCard(null);
+        setBench(null);
+        setAppeal(null);
+        setRepair(null);
+        setBeforeScore(null);
+        setError(null);
+        setNotice(null);
+        setShareText(null);
+        setRateLimited(false);
+        return;
+      }
+      const next = scenarioById(sampleId);
+      setOwnMode(false);
+      setScenario(next);
+      setProvider(next.providers[0]);
+      setFormat("plain");
+      setRequirements(next.requirements);
+      setTranscript(next.providers[0].plain);
+      setAgentScript("");
+      setBusinessFacts("");
+      setFormError(null);
+      setCard(null);
+      setBench(null);
+      setAppeal(null);
+      setRepair(null);
+      setBeforeScore(null);
+      setError(null);
+      setNotice(null);
+      setShareText(null);
+      setRateLimited(false);
+      setUsingSample(true);
+      setEditing(false);
+    });
+  }, [ownParam, requested, routeKey]);
 
   useEffect(() => {
     let cancelled = false;
@@ -116,6 +159,39 @@ export function ScoreWorkspace() {
     setUsingSample(true);
   }
 
+  function activeRequirements(): string {
+    return ownMode ? combineBrief(agentScript, businessFacts) : requirements;
+  }
+
+  function callLabel(): string {
+    if (ownMode) {
+      const example =
+        transcript === OWN_EXAMPLE.transcript &&
+        agentScript === OWN_EXAMPLE.script &&
+        businessFacts === OWN_EXAMPLE.facts;
+      return example ? OWN_EXAMPLE.label : "Your call";
+    }
+    return usingSample ? `${scenario.business} · ${provider.name}` : "Pasted call";
+  }
+
+  function loadExample() {
+    setTranscript(OWN_EXAMPLE.transcript);
+    setAgentScript(OWN_EXAMPLE.script);
+    setBusinessFacts(OWN_EXAMPLE.facts);
+    setFormError(null);
+    clearResult();
+  }
+
+  function showOwn() {
+    if (ownMode && ownParam) return;
+    router.replace("/score?own=1", { scroll: false });
+  }
+
+  function showSample() {
+    if (!ownMode && !ownParam) return;
+    router.replace(`/score?sample=${scenario.id}`, { scroll: false });
+  }
+
   function clearResult() {
     setCard(null);
     setBench(null);
@@ -129,6 +205,16 @@ export function ScoreWorkspace() {
   }
 
   async function judge(forced?: RequestMode) {
+    if (ownMode) {
+      const problem = validateOwnCall(transcript, agentScript, businessFacts);
+      if (problem) {
+        setFormError(problem);
+        setError(null);
+        setRateLimited(false);
+        return;
+      }
+      setFormError(null);
+    }
     const requestMode = forced ?? mode;
     setLoading(true);
     setError(null);
@@ -143,16 +229,16 @@ export function ScoreWorkspace() {
     try {
       const result = await postStream<{ type: "result"; scorecard: Scorecard; bench: BenchReport }>("/api/judge", {
         transcript,
-        requirements,
-        label: usingSample ? `${scenario.business} · ${provider.name}` : "Pasted call",
+        requirements: activeRequirements(),
+        label: callLabel(),
         model,
         mode: requestMode,
         stream: true,
       }, setStep);
       setCard(result.scorecard);
       setBench(result.bench);
-      if (window.innerWidth < 1024) {
-        document.getElementById("scorecard")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (window.innerWidth < 1280) {
+        document.getElementById("result")?.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     } catch (caught) {
       setCard(null);
@@ -175,7 +261,7 @@ export function ScoreWorkspace() {
     try {
       const result = await postJson<{ appeal: AppealReport }>("/api/appeal", {
         transcript,
-        requirements,
+        requirements: activeRequirements(),
         scorecard: card,
         mode: forced ?? mode,
       });
@@ -200,7 +286,7 @@ export function ScoreWorkspace() {
     try {
       const result = await postStream<{ type: "result"; repair: RepairPayload }>("/api/repair", {
         transcript,
-        requirements,
+        requirements: activeRequirements(),
         label: card.call.label,
         summary: card.summary,
         beforeOverall: before,
@@ -249,7 +335,15 @@ export function ScoreWorkspace() {
   }
 
   const busy = loading || appealing || repairing;
-  const ready = requirements.trim().length > 0 && transcript.trim().length > 0;
+  const ready = ownMode
+    ? transcript.trim().length > 0 && combineBrief(agentScript, businessFacts).length > 0
+    : requirements.trim().length > 0 && transcript.trim().length > 0;
+  const hint = ownMode ? transcriptHint(transcript) : null;
+  const exampleLoaded =
+    ownMode &&
+    transcript === OWN_EXAMPLE.transcript &&
+    agentScript === OWN_EXAMPLE.script &&
+    businessFacts === OWN_EXAMPLE.facts;
   const flowStep: 1 | 2 | 3 = loading && !card ? 2 : card ? 3 : 1;
   const samplePlain = provider.plain;
   const sampleJson = provider.audioJson;
@@ -320,13 +414,35 @@ export function ScoreWorkspace() {
         <div className="grid items-start gap-8 xl:grid-cols-2 xl:gap-x-12">
           <div className="grid gap-8">
             <div className="grid gap-3">
-              <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Pick a call</h1>
+              <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+                {ownMode ? "Test your own call" : "Pick a call"}
+              </h1>
               <p className="measure text-base leading-relaxed text-muted-foreground">
-                Choose a sample, or paste a transcript and the script the business approved.
+                {ownMode
+                  ? "Paste the transcript. Add the agent’s script, the business facts, or both."
+                  : "Choose a sample, or test a call of your own."}
               </p>
             </div>
 
-            {usingSample ? (
+            <div className="grid gap-3 sm:grid-cols-2" role="group" aria-label="How to choose a call">
+              <button type="button" className="choice" aria-pressed={!ownMode} onClick={showSample}>
+                <span className="block font-medium">Use a sample</span>
+                <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">Dental, HVAC, or a med spa.</span>
+              </button>
+              <button type="button" className="choice" aria-pressed={ownMode} onClick={showOwn}>
+                <span className="block font-medium">Test your own call</span>
+                <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">Paste a transcript and the brief.</span>
+              </button>
+            </div>
+
+            {ownMode ? (
+              <div className="flex items-end gap-4">
+                <CozzoCanary pose="peek" size={88} label="Cozzo the Canary waiting for a call" />
+                <p className="measure pb-1 text-sm leading-relaxed text-muted-foreground">
+                  Start each line with Agent: or Caller:. I’ll score it against the script and the facts.
+                </p>
+              </div>
+            ) : (
               <>
                 <fieldset className="grid gap-3">
                   <legend className="text-base font-medium">Which business?</legend>
@@ -375,90 +491,128 @@ export function ScoreWorkspace() {
                   </p>
                 </fieldset>
               </>
-            ) : (
-              <div className="flex items-end gap-4">
-                <CozzoCanary pose="peek" size={88} label="Cozzo the Canary waiting for a call" />
-                <p className="measure pb-1 text-sm leading-relaxed text-muted-foreground">
-                  Paste the approved script and the call. I’ll wait.{" "}
-                  <button
-                    type="button"
-                    className="font-medium text-foreground underline-offset-4 hover:underline"
-                    onClick={() => loadScenario(scenario)}
-                  >
-                    Use a sample instead
-                  </button>
-                </p>
-              </div>
             )}
           </div>
 
-          <div
-            className={`${showEditor ? "grid" : "hidden xl:grid"} gap-6 xl:col-start-2 xl:row-start-1 xl:row-span-3`}
-          >
-            <div className="grid gap-2">
-              <Label htmlFor="requirements">The script the business approved</Label>
-              <Textarea
-                id="requirements"
-                value={requirements}
-                onChange={(event) => {
-                  setRequirements(event.target.value);
-                  setUsingSample(false);
+          {ownMode ? (
+            <div className="grid gap-6 xl:col-start-2 xl:row-start-1 xl:row-span-3">
+              <div className="grid gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Label htmlFor="own-transcript">The call</Label>
+                  <Button type="button" variant="outline" className="h-9 px-3" onClick={loadExample}>
+                    Load example
+                  </Button>
+                </div>
+                <Textarea
+                  id="own-transcript"
+                  value={transcript}
+                  placeholder={"Agent: Thanks for calling. How can I help?\nCaller: I need to book a visit."}
+                  onChange={(event) => {
+                    setTranscript(event.target.value);
+                    setFormError(null);
+                  }}
+                  className="field-sizing-fixed min-h-56 text-sm leading-relaxed"
+                />
+                {hint ? <p className="text-sm leading-relaxed text-muted-foreground">{hint}</p> : null}
+                {exampleLoaded ? (
+                  <p className="text-sm leading-relaxed text-muted-foreground">Harbor Voice example is in the boxes. Edit any line to make it yours.</p>
+                ) : null}
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="agent-script">
+                  Agent script <span className="font-normal text-muted-foreground">optional</span>
+                </Label>
+                <Textarea
+                  id="agent-script"
+                  value={agentScript}
+                  placeholder="You are the receptionist. Be brief. Do not invent a price."
+                  onChange={(event) => {
+                    setAgentScript(event.target.value);
+                    setFormError(null);
+                  }}
+                  className="field-sizing-fixed min-h-28 text-sm leading-relaxed"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="business-facts">
+                  Business facts <span className="font-normal text-muted-foreground">optional</span>
+                </Label>
+                <Textarea
+                  id="business-facts"
+                  value={businessFacts}
+                  placeholder={"Hours: 8 to 5 weekdays. Cleaning: $189.\nOffer a person if the caller asks."}
+                  onChange={(event) => {
+                    setBusinessFacts(event.target.value);
+                    setFormError(null);
+                  }}
+                  className="field-sizing-fixed min-h-36 text-sm leading-relaxed"
+                />
+              </div>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Assistant, customer, and patient work as labels too. The call can be 80,000 characters. The script and
+                facts together can be 20,000. A live score on the default model uses 2 of this network’s 10 scores this
+                hour. Practice scores are not counted.
+              </p>
+            </div>
+          ) : (
+            <div
+              className={`${showEditor ? "grid" : "hidden xl:grid"} gap-6 xl:col-start-2 xl:row-start-1 xl:row-span-3`}
+            >
+              <div className="grid gap-2">
+                <Label htmlFor="requirements">The script the business approved</Label>
+                <Textarea
+                  id="requirements"
+                  value={requirements}
+                  onChange={(event) => {
+                    setRequirements(event.target.value);
+                    setUsingSample(false);
+                  }}
+                  className="field-sizing-fixed min-h-36 text-sm leading-relaxed"
+                />
+              </div>
+              <TranscriptField
+                id="transcript"
+                label="The call"
+                value={transcript}
+                showFormats={false}
+                onChange={(value) => {
+                  setTranscript(value);
+                  if (value !== provider.plain && value !== provider.audioJson) setUsingSample(false);
                 }}
-                className="field-sizing-fixed min-h-36 text-sm leading-relaxed"
+                format={format}
+                onFormat={(next) => {
+                  setFormat(next);
+                  if (usingSample) setTranscript(next === "json" ? sampleJson : samplePlain);
+                }}
+                plain={samplePlain}
+                audioJson={sampleJson}
               />
             </div>
-            <TranscriptField
-              id="transcript"
-              label="The call"
-              value={transcript}
-              showFormats={false}
-              onChange={(value) => {
-                setTranscript(value);
-                if (value !== provider.plain && value !== provider.audioJson) setUsingSample(false);
-              }}
-              format={format}
-              onFormat={(next) => {
-                setFormat(next);
-                if (usingSample) setTranscript(next === "json" ? sampleJson : samplePlain);
-              }}
-              plain={samplePlain}
-              audioJson={sampleJson}
-            />
-          </div>
+          )}
 
-          <div className="grid gap-4">
-            {showEditor ? null : (
-              <button
-                type="button"
-                className="w-fit text-sm font-medium underline-offset-4 hover:underline xl:hidden"
-                onClick={() => setEditing(true)}
-              >
-                Look at or edit this call
-              </button>
-            )}
-            {usingSample ? (
-              <button
-                type="button"
-                className="w-fit text-sm text-muted-foreground underline-offset-4 hover:underline"
-                onClick={() => {
-                  setUsingSample(false);
-                  setEditing(true);
-                  setRequirements("");
-                  setTranscript("");
-                  clearResult();
-                }}
-              >
-                Paste your own call instead
-              </button>
-            ) : null}
-          </div>
+          {ownMode ? null : (
+            <div className="grid gap-4">
+              {showEditor ? null : (
+                <button
+                  type="button"
+                  className="w-fit text-sm font-medium underline-offset-4 hover:underline xl:hidden"
+                  onClick={() => setEditing(true)}
+                >
+                  Look at or edit this call
+                </button>
+              )}
+            </div>
+          )}
 
           <div className="grid gap-8">
             <div className="grid gap-4">
-              <Button type="button" size="lg" className="h-12 w-full px-6 text-base sm:w-fit" disabled={busy || !ready} onClick={() => judge()}>
+              <Button type="button" size="lg" className="h-12 w-full px-6 text-base sm:w-fit" disabled={busy || (!ownMode && !ready)} onClick={() => judge()}>
                 Judge this call
               </Button>
-              {!ready ? <p className="text-sm text-muted-foreground">Add the script and the call first.</p> : null}
+              {formError ? (
+                <p role="alert" className="text-sm leading-relaxed">{formError}</p>
+              ) : null}
+              {!ownMode && !ready ? <p className="text-sm text-muted-foreground">Add the script and the call first.</p> : null}
               {error && rateLimited ? (
                 <LimitNotice
                   message={error}

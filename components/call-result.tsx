@@ -2,10 +2,11 @@
 
 import { Loader2 } from "lucide-react";
 import { CozzoCanary, type CanaryAccent } from "@/components/cozzo-canary";
+import { ScoreRing } from "@/components/score-ring";
 import { Button } from "@/components/ui/button";
 import type { AppealReport, BenchReport } from "@/lib/bench";
-import { bandColor, downloadJson, verdictLabel } from "@/lib/judge-client";
-import type { Scorecard } from "@/lib/rubric";
+import { downloadJson, verdictLabel } from "@/lib/judge-client";
+import type { DimensionScore, Scorecard } from "@/lib/rubric";
 
 export function CallResult({
   card,
@@ -47,33 +48,61 @@ export function CallResult({
   statusNote?: string | null;
   layout?: "split" | "stack";
 }) {
-  const issues = topIssues(card);
-  const tone = bandColor(card.verdict === "fail" ? Math.min(card.overall, 69) : card.overall);
+  const issues = topIssues(card).filter(
+    (issue) => !card.criticalFlags.some((flag) => flag.message === issue),
+  );
+  const tone = verdictTone(card.verdict);
+  const ringSize = layout === "stack" ? 132 : 176;
 
   return (
     <article id="result" className={layout === "split" ? "score-split score-split-wide" : "score-split"}>
       <div className="grid min-w-0 gap-8">
-      <header className="grid gap-4">
+      <header className="grid gap-5">
         <p className="text-sm text-muted-foreground">{card.call.label || "This call"}</p>
-        <div className="flex flex-wrap items-end gap-4 sm:gap-6">
-          <CozzoCanary pose="idle" size={96} accent={card.verdict} label={canaryLabel(card.verdict)} />
-          <div className="grid gap-2">
-            <p className="text-7xl font-semibold tracking-tight tabular-nums sm:text-8xl" style={{ color: tone }}>
-              {card.overall}
-            </p>
-            <h1 className="text-3xl font-semibold tracking-tight" style={{ color: tone }}>
-              {verdictLabel(card.verdict)}
-            </h1>
-          </div>
+        <div className={beforeScore != null ? "score-hero score-hero-pair" : "score-hero"}>
+          <CozzoCanary pose="idle" size={layout === "stack" ? 72 : 96} accent={card.verdict} label={canaryLabel(card.verdict)} />
+          {beforeScore != null ? (
+            <>
+              <ScoreRing
+                score={beforeScore}
+                tone={bandTone(beforeScore)}
+                ink={scoreInk(bandTone(beforeScore))}
+                size={Math.round(ringSize * 0.78)}
+                caption="Before"
+              />
+              <ScoreRing score={card.overall} tone={tone} ink={scoreInk(tone)} size={ringSize} caption="After" />
+              <p className="text-3xl font-semibold tabular-nums tracking-tight sm:text-4xl" style={{ color: scoreInk(tone) }}>
+                {deltaLabel(card.overall - beforeScore)}
+              </p>
+            </>
+          ) : (
+            <ScoreRing score={card.overall} tone={tone} ink={scoreInk(tone)} size={ringSize} />
+          )}
         </div>
+        <h1>
+          <span className="verdict-pill" style={pillStyle(card.verdict, tone)}>
+            {verdictLabel(card.verdict)}
+          </span>
+        </h1>
         <p className="measure text-lg leading-relaxed">{card.summary}</p>
       </header>
 
-      <section className="grid gap-3">
-        <h2 className="text-sm font-medium text-muted-foreground">What stood out</h2>
-        {issues.length === 0 ? (
-          <p className="text-base leading-relaxed">Nothing major stood out against the script.</p>
-        ) : (
+      {card.criticalFlags.length > 0 ? (
+        <section className="flag-card grid gap-2" role="alert">
+          <h2 className="font-medium">{card.criticalFlags.length > 1 ? "Critical flags" : "Critical flag"}</h2>
+          <ul className="grid gap-2">
+            {card.criticalFlags.map((flag) => (
+              <li key={`${flag.code}-${flag.message}`} className="text-sm leading-relaxed">
+                {flag.message}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {issues.length > 0 ? (
+        <section className="grid gap-3">
+          <h2 className="text-sm font-medium text-muted-foreground">What stood out</h2>
           <ol className="grid gap-3">
             {issues.map((issue, index) => (
               <li key={`${index}-${issue}`} className="text-base leading-relaxed">
@@ -81,8 +110,8 @@ export function CallResult({
               </li>
             ))}
           </ol>
-        )}
-      </section>
+        </section>
+      ) : null}
 
       {beforeScore != null ? (
         <p className="text-base leading-relaxed">
@@ -114,32 +143,12 @@ export function CallResult({
       </div>
 
       <div className="score-aside">
-        <details className="group py-2">
-          <summary className="cursor-pointer text-base font-medium">The five checks</summary>
-          <div className="mt-5 grid gap-6">
-            {card.dimensions.map((dimension) => (
-              <section key={dimension.id} className="grid gap-2">
-                <div className="flex items-baseline justify-between gap-4">
-                  <h3 className="font-medium">{dimension.name}</h3>
-                  <p className="text-sm tabular-nums text-muted-foreground">
-                    {dimension.score}
-                    <span className="ml-2">{Math.round(dimension.weight * 100)}% of the score</span>
-                  </p>
-                </div>
-                <p className="text-sm leading-relaxed text-muted-foreground">{dimension.rationale}</p>
-                {dimension.evidence.map((item) => (
-                  <figure key={item.quote} className="border-l border-border pl-3">
-                    <blockquote className="text-sm leading-relaxed">“{item.quote}”</blockquote>
-                    <figcaption className="mt-1 text-xs text-muted-foreground">
-                      {item.note}
-                      {item.verified ? "" : " This line was not found in the transcript."}
-                    </figcaption>
-                  </figure>
-                ))}
-              </section>
-            ))}
-          </div>
-        </details>
+        <section className="grid gap-3">
+          <h2 className="text-sm font-medium text-muted-foreground">The five checks</h2>
+          {orderedChecks(card).map((dimension) => (
+            <CheckBar key={dimension.id} dimension={dimension} />
+          ))}
+        </section>
 
         {repair ? (
           <details className="py-2">
@@ -278,6 +287,102 @@ function BenchCopy({ bench, verdict }: { bench: BenchReport; verdict: Scorecard[
       </p>
     </>
   );
+}
+
+const CHECK_ORDER = [
+  "task_completion",
+  "factual_accuracy",
+  "escalation_handoff",
+  "hallucination",
+  "tone_empathy",
+] as const;
+
+function orderedChecks(card: Scorecard): DimensionScore[] {
+  return CHECK_ORDER.map((id) => card.dimensions.find((dimension) => dimension.id === id)).filter(
+    (dimension): dimension is DimensionScore => Boolean(dimension),
+  );
+}
+
+function CheckBar({ dimension }: { dimension: DimensionScore }) {
+  const weight = Math.round(dimension.weight * 100);
+  const earned = Math.round((dimension.score * weight) / 100);
+  const tone = bandTone(dimension.score);
+  return (
+    <details className="check-row rounded-2xl border border-border px-4 py-3">
+      <summary className="grid gap-2">
+        <span className="flex items-baseline justify-between gap-3">
+          <span className="font-medium">
+            {shortCheckName(dimension.id)}
+            <span className="ml-2 font-normal text-muted-foreground">{weight}</span>
+          </span>
+          <span className="check-points text-sm tabular-nums text-muted-foreground">
+            {earned} / {weight}
+          </span>
+        </span>
+        <span className="block h-2 overflow-hidden rounded-full bg-muted">
+          <span className="block h-full rounded-full" style={{ width: `${clamp(dimension.score)}%`, background: tone }} />
+        </span>
+      </summary>
+      <div className="mt-3 grid gap-3">
+        <p className="text-sm leading-relaxed text-muted-foreground">{dimension.rationale}</p>
+        {dimension.evidence.map((item) => (
+          <figure key={item.quote} className="border-l border-border pl-3">
+            <blockquote className="text-sm leading-relaxed">“{item.quote}”</blockquote>
+            <figcaption className="mt-1 text-xs text-muted-foreground">
+              {item.note}
+              {item.verified ? "" : " This line was not found in the transcript."}
+            </figcaption>
+          </figure>
+        ))}
+      </div>
+    </details>
+  );
+}
+
+const SHORT_CHECK: Record<string, string> = {
+  task_completion: "Task",
+  factual_accuracy: "Facts",
+  escalation_handoff: "Handoff",
+  hallucination: "Hallucination",
+  tone_empathy: "Tone",
+};
+
+function shortCheckName(id: string): string {
+  return SHORT_CHECK[id] ?? id;
+}
+
+function scoreInk(tone: string): string {
+  return tone === "#ffc927" ? "var(--review-ink)" : tone;
+}
+
+function verdictTone(verdict: Scorecard["verdict"]): string {
+  if (verdict === "pass") return "var(--pass)";
+  if (verdict === "review") return "#ffc927";
+  return "var(--fail)";
+}
+
+function bandTone(score: number): string {
+  if (score >= 85) return "var(--pass)";
+  if (score >= 70) return "#ffc927";
+  return "var(--fail)";
+}
+
+function pillStyle(verdict: Scorecard["verdict"], tone: string): { background: string; color: string } {
+  return {
+    background: tone,
+    color: verdict === "review" ? "#1c1917" : "var(--background)",
+  };
+}
+
+function deltaLabel(delta: number): string {
+  const rounded = Math.round(delta);
+  if (rounded > 0) return `+${rounded}`;
+  return String(rounded);
+}
+
+function clamp(score: number): number {
+  if (!Number.isFinite(score)) return 0;
+  return Math.max(0, Math.min(100, score));
 }
 
 function canaryLabel(verdict: CanaryAccent): string {

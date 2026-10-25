@@ -76,6 +76,7 @@
   --peach: #ffb38a;
   --pass: #047857;
   --review: #b45309;
+  --review-ink: #6b4a00;
   --fail: #be123c;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
@@ -116,6 +117,7 @@
   --peach: #ffb38a;
   --pass: #34d399;
   --review: #fbbf24;
+  --review-ink: #ffd95e;
   --fail: #fb7185;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
@@ -171,6 +173,89 @@
 @media (prefers-reduced-motion: reduce) {
   .canary-bob {
     animation: none;
+  }
+}
+
+.score-arc {
+  transition: stroke-dashoffset 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.score-ring-slot {
+  width: var(--ring);
+  height: var(--ring);
+  container-type: size;
+}
+
+.score-ring-num {
+  font-size: 28cqmin;
+}
+
+.verdict-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  font-family: var(--font-sora), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+@media (max-width: 40rem) {
+  .score-hero .score-ring-slot {
+    width: min(var(--ring), 9.5rem);
+    height: min(var(--ring), 9.5rem);
+  }
+
+  .score-hero-pair .score-ring-slot {
+    width: min(var(--ring), 6.25rem);
+    height: min(var(--ring), 6.25rem);
+  }
+}
+
+.tone-review {
+  color: #6b4a00;
+}
+
+.dark .tone-review {
+  color: #ffd95e;
+}
+
+.flag-card {
+  border: 1px solid color-mix(in srgb, var(--fail) 40%, transparent);
+  background: color-mix(in srgb, var(--peach) 32%, var(--card));
+  border-radius: 1rem;
+  padding: var(--card-pad);
+}
+
+.check-row > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.check-row > summary::-webkit-details-marker {
+  display: none;
+}
+
+.check-row > summary .check-points::after {
+  content: "";
+  display: inline-block;
+  width: 0.4rem;
+  height: 0.4rem;
+  margin-left: 0.45rem;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg) translateY(-0.12rem);
+}
+
+.check-row[open] > summary .check-points::after {
+  transform: rotate(-135deg) translateY(0.05rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .score-arc {
+    transition: none;
   }
 }
 
@@ -242,6 +327,19 @@
 
   .choice[aria-pressed="true"] {
     border-color: var(--foreground);
+  }
+
+  .score-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  @media (min-width: 40rem) {
+    .score-hero {
+      gap: 2rem;
+    }
   }
 
   .score-split {
