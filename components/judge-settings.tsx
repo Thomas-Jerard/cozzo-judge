@@ -32,7 +32,7 @@ export function JudgeSettings({
   return (
     <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
       <div className="grid gap-2">
-        <Label htmlFor="model">NVIDIA model on Nebius</Label>
+        <Label htmlFor="model">Model</Label>
         <Select
           value={model}
           onValueChange={(value) => {
@@ -55,7 +55,7 @@ export function JudgeSettings({
         </p>
       </div>
       <fieldset className="grid gap-2">
-        <legend className="text-sm font-medium">Judge</legend>
+        <legend className="text-sm font-medium">Connection</legend>
         <div className="flex rounded-lg bg-muted p-1">
           {(
             [

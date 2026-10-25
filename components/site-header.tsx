@@ -7,8 +7,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
-  { href: "/score", label: "Score a call" },
-  { href: "/compare", label: "Compare" },
+  { href: "/score", label: "Judge a call" },
+  { href: "/compare", label: "Advanced" },
 ];
 
 export function SiteHeader() {

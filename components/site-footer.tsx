@@ -20,13 +20,7 @@ export function SiteFooter() {
           <p>
             Sample calls are synthetic. Northline Voice and Harbor Voice are fictional labels, not vendors.
           </p>
-          <p className="sm:text-right">
-            <a href="https://cozzo.io" className="hover:text-foreground">
-              cozzo.io
-            </a>
-            <span aria-hidden="true"> · </span>
-            NVIDIA Nemotron on Nebius Token Factory
-          </p>
+          <p className="sm:text-right">Powered by NVIDIA Nemotron on Nebius</p>
         </div>
       </div>
     </footer>

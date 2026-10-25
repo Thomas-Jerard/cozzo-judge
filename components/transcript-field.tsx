@@ -16,6 +16,7 @@ export function TranscriptField({
   onFormat,
   plain,
   audioJson,
+  showFormats = true,
 }: {
   id: string;
   label: string;
@@ -25,6 +26,7 @@ export function TranscriptField({
   onFormat: (format: "plain" | "json") => void;
   plain: string;
   audioJson: string;
+  showFormats?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -36,14 +38,16 @@ export function TranscriptField({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Label htmlFor={id}>{label}</Label>
         <div className="flex flex-wrap gap-2">
-          <div className="flex rounded-lg bg-muted p-0.5">
-            <FormatButton active={format === "plain"} onClick={() => onFormat("plain")}>
-              Plain text
-            </FormatButton>
-            <FormatButton active={format === "json"} onClick={() => onFormat("json")}>
-              Audio JSON
-            </FormatButton>
-          </div>
+          {showFormats ? (
+            <div className="flex rounded-lg bg-muted p-0.5">
+              <FormatButton active={format === "plain"} onClick={() => onFormat("plain")}>
+                Plain text
+              </FormatButton>
+              <FormatButton active={format === "json"} onClick={() => onFormat("json")}>
+                Audio JSON
+              </FormatButton>
+            </div>
+          ) : null}
           <button
             type="button"
             className="text-sm font-medium text-primary hover:underline"
@@ -91,9 +95,11 @@ export function TranscriptField({
           <button type="button" className="hover:text-foreground" onClick={() => onChange(plain)}>
             Load plain sample
           </button>
-          <button type="button" className="hover:text-foreground" onClick={() => { onChange(audioJson); onFormat("json"); }}>
-            Load JSON sample
-          </button>
+          {showFormats ? (
+            <button type="button" className="hover:text-foreground" onClick={() => { onChange(audioJson); onFormat("json"); }}>
+              Load JSON sample
+            </button>
+          ) : null}
         </div>
       </div>
       {uploadError ? <p className="text-xs text-destructive">{uploadError}</p> : null}
