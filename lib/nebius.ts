@@ -1,4 +1,5 @@
 import { DEFAULT_MODEL_ID, NEMOTRON_MODELS, resolveModel, TOKEN_FACTORY_BASE_URL } from "./models";
+import { liveDailyCap, liveIpHourlyCap } from "./rate-limit";
 import type { ChatMessage, CompletionResult } from "./rubric";
 
 /** One live completion. A JSON retry in the rubric can make a second call. */
@@ -9,6 +10,8 @@ export interface JudgeRuntime {
   defaultMode: "live" | "mock";
   defaultModel: string;
   models: { id: string; label: string; detail: string }[];
+  ipHourly: number;
+  daily: number;
 }
 
 export function judgeRuntime(): JudgeRuntime {
@@ -25,6 +28,8 @@ export function judgeRuntime(): JudgeRuntime {
       label,
       detail,
     })),
+    ipHourly: liveIpHourlyCap(),
+    daily: liveDailyCap(),
   };
 }
 

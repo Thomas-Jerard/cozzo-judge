@@ -7,8 +7,8 @@
  */
 
 const HOUR_MS = 60 * 60 * 1000;
-const DEFAULT_IP_HOURLY = 10;
-const DEFAULT_DAILY = 300;
+const DEFAULT_IP_HOURLY = 30;
+const DEFAULT_DAILY = 600;
 
 interface LimitStore {
   ips: Map<string, number[]>;

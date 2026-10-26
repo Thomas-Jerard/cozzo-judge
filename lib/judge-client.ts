@@ -5,6 +5,8 @@ export interface JudgeStatus {
   defaultMode: "live" | "mock";
   defaultModel: string;
   models: { id: string; label: string; detail: string }[];
+  ipHourly?: number;
+  daily?: number;
 }
 
 export type RequestMode = "auto" | "live" | "mock";
@@ -31,7 +33,16 @@ export async function readStatus(): Promise<JudgeStatus> {
   return (await response.json()) as JudgeStatus;
 }
 
-export type StreamStep = "triage" | "score" | "quotes" | "propose" | "retry" | "rescore";
+export type StreamStep =
+  | "triage"
+  | "score"
+  | "quotes"
+  | "propose"
+  | "retry"
+  | "rescore"
+  | "read"
+  | "transcribe"
+  | "label";
 
 export async function postStream<T extends { type: "result" }>(
   url: string,
@@ -78,6 +89,56 @@ export async function postStream<T extends { type: "result" }>(
   }
   if (buffer.trim()) take(buffer);
   if (!result) throw new JudgeRequestError("The judge closed the stream without a scorecard.", 502);
+  return result;
+}
+
+export async function postFormStream<T extends { type: "result" }>(
+  url: string,
+  body: FormData,
+  onStatus: (step: StreamStep) => void,
+): Promise<T> {
+  const response = await fetch(url, { method: "POST", body });
+  if (response.status === 413) {
+    throw new JudgeRequestError(
+      "That file is over 4 MB. A Vercel function can only accept about 4.5 MB.",
+      413,
+    );
+  }
+  const contentType = response.headers.get("content-type") ?? "";
+  if (contentType.includes("application/json") || !response.body) {
+    const data = (await response.json()) as T & { error?: string };
+    if (!response.ok) {
+      throw new JudgeRequestError(data.error || "The transcription failed.", response.status);
+    }
+    return data;
+  }
+  if (!response.ok) {
+    throw new JudgeRequestError(`The transcription failed (${response.status}).`, response.status);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let result: T | null = null;
+  const take = (line: string) => {
+    if (!line.trim()) return;
+    const event = JSON.parse(line) as { type?: string; step?: StreamStep; error?: string; status?: number };
+    if (event.type === "status" && event.step) onStatus(event.step);
+    if (event.type === "error") {
+      throw new JudgeRequestError(event.error || "The transcription failed.", event.status || 502);
+    }
+    if (event.type === "result") result = event as T;
+  };
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) take(line);
+  }
+  if (buffer.trim()) take(buffer);
+  if (!result) throw new JudgeRequestError("The transcription stopped before a transcript came back.", 502);
   return result;
 }
 
