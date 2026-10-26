@@ -50,7 +50,9 @@ export function AppealPanel({ appeal }: { appeal: AppealReport }) {
   return (
     <section className="rounded-2xl bg-accent/70 p-4 text-sm text-accent-foreground" data-appeal>
       <p className="text-xs font-medium tracking-[0.16em] uppercase">
-        {appeal.agrees ? "Ultra agrees" : "Ultra disagrees"} · {latencyLabel(appeal.latencyMs)}
+        {appeal.model.includes("saved")
+          ? `Saved run · ${appeal.agrees ? "agrees" : "disagrees"}`
+          : `${appeal.agrees ? "Ultra agrees" : "Ultra disagrees"} · ${latencyLabel(appeal.latencyMs)}`}
       </p>
       <p className="mt-2 leading-relaxed">{appeal.opinion}</p>
       <p className="mt-2 text-xs">{appeal.note}</p>

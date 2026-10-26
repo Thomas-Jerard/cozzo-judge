@@ -24,6 +24,7 @@ export function CallResult({
   shareText,
   onAnother,
   statusNote,
+  saved = false,
   layout = "split",
 }: {
   card: Scorecard;
@@ -46,6 +47,7 @@ export function CallResult({
   shareText?: string | null;
   onAnother?: () => void;
   statusNote?: string | null;
+  saved?: boolean;
   layout?: "split" | "stack";
 }) {
   const issues = topIssues(card).filter(
@@ -58,7 +60,10 @@ export function CallResult({
     <article id="result" className={layout === "split" ? "score-split score-split-wide" : "score-split"}>
       <div className="grid min-w-0 gap-8">
       <header className="grid gap-5">
-        <p className="text-sm text-muted-foreground">{card.call.label || "This call"}</p>
+        <p className="text-sm text-muted-foreground">
+          {card.call.label || "This call"}
+          {saved ? " · Saved run" : ""}
+        </p>
         <div className={beforeScore != null ? "score-hero score-hero-pair" : "score-hero"}>
           <CozzoCanary pose="idle" size={layout === "stack" ? 72 : 96} accent={card.verdict} label={canaryLabel(card.verdict)} />
           {beforeScore != null ? (
@@ -255,7 +260,16 @@ export function CallResult({
 
 function BenchCopy({ bench, verdict }: { bench: BenchReport; verdict: Scorecard["verdict"] }) {
   const triage = bench.triage;
+  const saved = Boolean(triage?.model.includes("saved") || bench.score.model.includes("saved"));
   const local = Boolean(triage?.model.includes("mock") || bench.score.model.includes("mock"));
+  if (saved) {
+    return (
+      <p>
+        Saved run. This score was prepared ahead of time
+        {triage && !triage.skipped ? ` and read as ${triage.risk} risk` : ""}. Nebius was not called.
+      </p>
+    );
+  }
   return (
     <>
       {triage?.skipped ? (

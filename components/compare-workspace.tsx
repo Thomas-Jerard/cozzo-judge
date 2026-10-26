@@ -29,6 +29,8 @@ import { SCENARIOS, scenarioById, type SampleScenario } from "@/lib/samples";
 
 interface Pair {
   scorecards: [Scorecard, Scorecard];
+  saved?: boolean;
+  notice?: string | null;
 }
 
 interface PackRow {
@@ -59,6 +61,8 @@ export function CompareWorkspace() {
   const [appealing, setAppealing] = useState(false);
   const [pack, setPack] = useState<PackRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [banner, setBanner] = useState<string | null>(null);
+  const [savedPair, setSavedPair] = useState(false);
   const [rateLimited, setRateLimited] = useState(false);
   const [limitTarget, setLimitTarget] = useState<"pair" | "pack" | "appeal">("pair");
   const [loading, setLoading] = useState(false);
@@ -91,6 +95,8 @@ export function CompareWorkspace() {
     setRightFormat("plain");
     setPair(null);
     setError(null);
+    setBanner(null);
+    setSavedPair(false);
   }
 
   async function judgePair(forced?: RequestMode) {
@@ -109,6 +115,8 @@ export function CompareWorkspace() {
       });
       setAppeal(null);
       setPair({ scorecards: [result.scorecards[0], result.scorecards[1]] });
+      setSavedPair(result.saved === true);
+      setBanner(result.notice ?? null);
       if (window.innerWidth < 1024) {
         document.getElementById("comparison")?.scrollIntoView({ behavior: "smooth", block: "start" });
       }
@@ -333,6 +341,11 @@ export function CompareWorkspace() {
 
       {left && right && lead ? (
         <section id="comparison" className="mt-10 grid gap-6">
+          {banner ? (
+            <p role="status" className="rounded-xl bg-accent px-4 py-3 text-sm leading-relaxed">
+              {banner}
+            </p>
+          ) : null}
           <div className="grid gap-3">
             <p className="text-2xl font-semibold tracking-tight">{lead.headline}</p>
             <p className="text-base leading-relaxed text-muted-foreground">{lead.detail}</p>
@@ -390,8 +403,8 @@ export function CompareWorkspace() {
             </div>
           </details>
           <div className="grid min-w-0 gap-12 xl:grid-cols-2">
-            <CallResult card={left} layout="stack" />
-            <CallResult card={right} layout="stack" />
+            <CallResult card={left} saved={savedPair} layout="stack" />
+            <CallResult card={right} saved={savedPair} layout="stack" />
           </div>
         </section>
       ) : null}
