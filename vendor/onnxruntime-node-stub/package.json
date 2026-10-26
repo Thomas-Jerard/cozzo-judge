@@ -1,0 +1,8 @@
+{
+  "name": "onnxruntime-node",
+  "version": "1.14.0",
+  "private": true,
+  "description": "Stand-in so speech transcription uses the wasm runtime. The native onnxruntime-node package is too large for a Vercel function.",
+  "type": "commonjs",
+  "main": "./index.js"
+}
