@@ -18,13 +18,13 @@ Point at Cozzo the Canary. **“Hi, I’m Cozzo. A canary in the coal mine for v
 
 Point at the numbered list, then at the quiet line under the button. **“The score is powered by NVIDIA Nemotron on Nebius.”**
 
-**Test your own call** is the paste path. This demo uses a sample. Click **Judge a call**.
+**Test your own call** is the paste path, and it also takes a recording. This demo uses a sample. Click **Judge a call**.
 
 ## 0:20 — Pick a call
 
 The steps at the top should show **1 Pick a call**.
 
-**“Brightmolar Family Dental is fictional. I’ll start with Harbor Voice, the agent that misses the script.”**
+**“Brightmolar Family Dental is fictional. I’ll start with Harbor Voice, the agent that misses the script. This score is a saved run, so it appears at once.”**
 
 Click **Harbor Voice**. Do not open the transcript.
 

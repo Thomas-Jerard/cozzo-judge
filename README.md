@@ -37,7 +37,13 @@ npm run build
 npm start
 ```
 
-The main path is three steps: pick a call, judge it, read the result. **Test your own call** on the home page and on step 1 takes a pasted transcript (`Agent:` / `Caller:` lines, or the same WebVTT and JSON the parser already accepts) plus an optional agent script and optional business facts. Compare, the scenario pack, audio JSON, and the model picker sit under **Advanced**.
+The main path is three steps: pick a call, judge it, read the result. **Test your own call** on the home page and on step 1 takes a pasted transcript (`Agent:` / `Caller:` lines, or the same WebVTT and JSON the parser already accepts), a dropped recording, plus an optional agent script and optional business facts. Compare, the scenario pack, audio JSON, and the model picker sit under **Advanced**.
+
+## Transcription
+
+Nebius Token Factory does not host a speech-to-text model. The public catalog is text, vision, and embeddings, and `POST /v1/audio/transcriptions` is not on the API. A recording dropped on **Test your own call** is decoded on the server and transcribed with `Xenova/whisper-tiny.en` (Whisper tiny, English). Whisper does not diarize, so a live run then asks `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B` to label each turn Agent or Caller. A practice run skips Nebius and guesses the labels from pauses. The transcript lands in the box and can be edited before scoring.
+
+Files can be mp3, wav, m4a, webm, mp4, or ogg, up to 4 MB and 10 minutes. Vercel functions reject a request body over about 4.5 MB, so 25 MB recordings never reach the route. A live transcription counts as 2 rate-limit slots. The first transcription on a cold server also downloads the Whisper weights into `/tmp`.
 
 ## Environment
 
@@ -47,8 +53,8 @@ The main path is three steps: pick a call, judge it, read the result. **Test you
 | `NEBIUS_BASE_URL` | No | Overrides the Token Factory host. Default is `https://api.tokenfactory.nebius.com/v1`. |
 | `NEBIUS_MODEL` | No | Default model id. Falls back to `nvidia/nemotron-3-super-120b-a12b`. |
 | `JUDGE_MODE` | No | `auto` (default), `live`, or `mock`. `auto` is live only when a key is present. |
-| `LIVE_IP_HOURLY_CAP` | No | Live scorecards per visitor IP per rolling hour. Default `10`. |
-| `LIVE_DAILY_CAP` | No | Live scorecards across all visitors per UTC day. Default `300`. |
+| `LIVE_IP_HOURLY_CAP` | No | Live scorecards per visitor IP per rolling hour. Default `30`. |
+| `LIVE_DAILY_CAP` | No | Live scorecards across all visitors per UTC day. Default `600`. |
 
 Create a key in Nebius Token Factory and keep it in `.env.local` or in the host's secret store. Do not commit it.
 
@@ -58,14 +64,32 @@ On Vercel, add `NEBIUS_API_KEY` in project settings. Route handlers set `maxDura
 
 Live scoring is capped so a public demo cannot spend the Nebius balance. Mock scoring is not counted.
 
-- 10 live scorecards per visitor IP per rolling hour (`LIVE_IP_HOURLY_CAP`).
-- 300 live scorecards per UTC day across everyone (`LIVE_DAILY_CAP`).
-- A Super score on **Judge a call** counts as 2 (Nano triage plus the Super scorecard). Any other model counts as 1. **Ask for a second opinion** (Ultra) counts as 1. **Fix the prompt** counts as 2 (the rewrite, then the rescore). **Compare** counts as 2, one Super scorecard each, with no Nano step. **Run all three scenarios** is three compares, so it counts as 6.
+- 30 live scorecards per visitor IP per rolling hour (`LIVE_IP_HOURLY_CAP`). Judges often share one network, so the hourly cap is higher than a single visitor needs.
+- 600 live scorecards per UTC day across everyone (`LIVE_DAILY_CAP`).
+- A Super score on **Judge a call** counts as 2 (Nano triage plus the Super scorecard). Any other model counts as 1. **Ask for a second opinion** (Ultra) counts as 1. **Fix the prompt** counts as 2 (the rewrite, then the rescore). **Transcribe a recording** counts as 2. **Compare** counts as 2, one Super scorecard each, with no Nano step. **Run all three scenarios** is three compares, so it counts as 6.
 - A rewrite that is not valid JSON tries once more. That extra model call is not a second scorecard.
-- A request that does not fit in the remaining budget is refused as a whole. Nothing is reserved.
-- The response is HTTP 429 with a short explanation. The page shows that message and a button to score the same call, pair, or pack with the mock judge.
+- A request that does not fit in the remaining budget is not reserved.
+- When a live call hits that cap, or Nebius times out, runs out of quota, or returns an error, the page shows a short explanation and the saved Harbor Voice example. The sample calls themselves never make that request. A bad upload (wrong type, empty file, over 4 MB) still explains the problem instead of inventing a transcript.
 
 The counters are in memory on each server instance. Vercel does not share that memory across isolates, and a cold start starts from zero. The cap can therefore be exceeded when more than one instance is serving traffic. There is no KV store. An automatic JSON retry is one extra model call and is not a second scorecard in the count. The visitor IP is `x-real-ip` when the host sets it, otherwise the first address in `x-forwarded-for`.
+
+## Saved runs
+
+Harbor Voice, Northline Voice, and the HVAC and med spa samples are scored from fixtures stored in the repo. **Judge this call**, **Fix the prompt**, **Compare**, and **Run all three scenarios** return those cards immediately. They do not call Nebius and they do not use a rate-limit slot. The card says **Saved run**.
+
+The Harbor example under **Test your own call** is the same dental call, so it is a saved run too. If a custom call's live score fails, the page still shows the saved Harbor example and says that it is not a score of the call that was sent.
+
+`GET /api/health` checks the default Nebius model with an 8 second ping and checks that ffmpeg and the Whisper runtime are on the server. The body has no API key. It reports `weightsCached` so a cold transcription instance is visible. Whisper weights download into `/tmp` on the first transcription, which can take 10–30 seconds. The saved samples do not wait on that.
+
+## Spend for judging week
+
+Token Factory list prices used here, per million tokens: Nano $0.06 in / $0.24 out, Super $0.30 in / $0.90 out, Ultra $1.00 in / $3.00 out. A default live score is about $0.003. Fix the prompt is about $0.005. An Ultra appeal is about $0.006. A live transcription only pays for a short Nano labeling pass, well under $0.001, because Whisper runs on the server.
+
+Thirty scores an hour on one shared IP is about $0.09 if every one is a default live score. Filling the daily cap of 600 with default scores is about $1.80 a day, or about $13 across seven days. Filling it with Ultra appeals is about $3.60 a day, or about $25 for the week. The demo path is cached, so a judging week of sample clicks plus a few dozen custom scores is more likely $1–$5. The counters reset when an instance cold-starts, so this is a backstop, not a hard account budget.
+
+## Timeouts and cold starts
+
+Judge, compare, repair, appeal, and transcribe set `maxDuration = 120`. Health sets `maxDuration = 15`. Inside a score, Super is cut off at 55 seconds and Nano at 15. Fix the prompt is 40 seconds, one 32 second retry, then a 40 second rescore, which stays inside the 120 second route. A transcription is cut off at 90 seconds after ffmpeg decode. The first Whisper load on a fresh instance also downloads about 40 MB of weights. Harbor and the other saved samples return without that wait.
 
 ## Architecture
 
