@@ -51,13 +51,13 @@ export function usesBench(modelId: string): boolean {
  * they stay one Super call per transcript.
  */
 export function liveCallBudget(
-  kind: "score" | "appeal" | "repair",
+  kind: "score" | "appeal" | "repair" | "transcribe",
   mode: "live" | "mock",
   modelId: string,
 ): number {
   if (mode !== "live") return 0;
+  if (kind === "transcribe" || kind === "repair") return 2;
   if (kind === "appeal") return 1;
-  if (kind === "repair") return 2;
   return usesBench(modelId) ? 2 : 1;
 }
 

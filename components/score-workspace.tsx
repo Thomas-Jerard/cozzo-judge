@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { CallDrop } from "@/components/call-drop";
 import { CallResult } from "@/components/call-result";
 import { CozzoCanary } from "@/components/cozzo-canary";
 import { PageShell } from "@/components/page-shell";
@@ -45,6 +46,7 @@ export function ScoreWorkspace() {
   const [agentScript, setAgentScript] = useState("");
   const [businessFacts, setBusinessFacts] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
+  const [uploadNote, setUploadNote] = useState<string | null>(null);
   const [model, setModel] = useState(DEFAULT_MODEL_ID);
   const [mode, setMode] = useState<RequestMode>("auto");
   const [card, setCard] = useState<Scorecard | null>(null);
@@ -55,6 +57,8 @@ export function ScoreWorkspace() {
   const [step, setStep] = useState<StreamStep | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [banner, setBanner] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
   const [shareText, setShareText] = useState<string | null>(null);
   const [rateLimited, setRateLimited] = useState(false);
   const [limitTarget, setLimitTarget] = useState<"score" | "appeal" | "repair">("score");
@@ -86,6 +90,7 @@ export function ScoreWorkspace() {
         setBusinessFacts("");
         setRequirements("");
         setTranscript("");
+        setUploadNote(null);
         setFormError(null);
         setFormat("plain");
         setCard(null);
@@ -93,12 +98,14 @@ export function ScoreWorkspace() {
         setAppeal(null);
         setRepair(null);
         setBeforeScore(null);
-        setError(null);
-        setNotice(null);
-        setShareText(null);
-        setRateLimited(false);
-        return;
-      }
+      setError(null);
+      setNotice(null);
+      setBanner(null);
+      setSaved(false);
+      setShareText(null);
+      setRateLimited(false);
+      return;
+    }
       const next = scenarioById(sampleId);
       setOwnMode(false);
       setScenario(next);
@@ -106,6 +113,7 @@ export function ScoreWorkspace() {
       setFormat("plain");
       setRequirements(next.requirements);
       setTranscript(next.providers[0].plain);
+      setUploadNote(null);
       setAgentScript("");
       setBusinessFacts("");
       setFormError(null);
@@ -116,6 +124,8 @@ export function ScoreWorkspace() {
       setBeforeScore(null);
       setError(null);
       setNotice(null);
+      setBanner(null);
+      setSaved(false);
       setShareText(null);
       setRateLimited(false);
       setUsingSample(true);
@@ -176,6 +186,7 @@ export function ScoreWorkspace() {
 
   function loadExample() {
     setTranscript(OWN_EXAMPLE.transcript);
+    setUploadNote(null);
     setAgentScript(OWN_EXAMPLE.script);
     setBusinessFacts(OWN_EXAMPLE.facts);
     setFormError(null);
@@ -200,6 +211,8 @@ export function ScoreWorkspace() {
     setBeforeScore(null);
     setError(null);
     setNotice(null);
+    setBanner(null);
+    setSaved(false);
     setShareText(null);
     setRateLimited(false);
   }
@@ -227,7 +240,13 @@ export function ScoreWorkspace() {
     setBeforeScore(null);
     setStep(usesBench(model) ? "triage" : "score");
     try {
-      const result = await postStream<{ type: "result"; scorecard: Scorecard; bench: BenchReport }>("/api/judge", {
+      const result = await postStream<{
+        type: "result";
+        scorecard: Scorecard;
+        bench: BenchReport;
+        saved?: boolean;
+        notice?: string | null;
+      }>("/api/judge", {
         transcript,
         requirements: activeRequirements(),
         label: callLabel(),
@@ -237,6 +256,8 @@ export function ScoreWorkspace() {
       }, setStep);
       setCard(result.scorecard);
       setBench(result.bench);
+      setSaved(result.saved === true);
+      setBanner(result.notice ?? null);
       if (window.innerWidth < 1280) {
         document.getElementById("result")?.scrollIntoView({ behavior: "smooth", block: "start" });
       }
@@ -259,13 +280,15 @@ export function ScoreWorkspace() {
     setRateLimited(false);
     setLimitTarget("appeal");
     try {
-      const result = await postJson<{ appeal: AppealReport }>("/api/appeal", {
+      const result = await postJson<{ appeal: AppealReport; saved?: boolean; notice?: string | null }>("/api/appeal", {
         transcript,
         requirements: activeRequirements(),
         scorecard: card,
         mode: forced ?? mode,
       });
       setAppeal(result.appeal);
+      if (result.saved) setSaved(true);
+      if (result.notice) setBanner(result.notice);
     } catch (caught) {
       setRateLimited(isRateLimitError(caught));
       setError(caught instanceof Error ? caught.message : "The appeal failed.");
@@ -284,7 +307,12 @@ export function ScoreWorkspace() {
     setLimitTarget("repair");
     setStep("propose");
     try {
-      const result = await postStream<{ type: "result"; repair: RepairPayload }>("/api/repair", {
+      const result = await postStream<{
+        type: "result";
+        repair: RepairPayload;
+        saved?: boolean;
+        notice?: string | null;
+      }>("/api/repair", {
         transcript,
         requirements: activeRequirements(),
         label: card.call.label,
@@ -299,6 +327,8 @@ export function ScoreWorkspace() {
       setCard(result.repair.scorecard);
       setBench(result.repair.bench);
       setAppeal(null);
+      if (result.saved) setSaved(true);
+      if (result.notice) setBanner(result.notice);
     } catch (caught) {
       setRateLimited(isRateLimitError(caught));
       setError(caught instanceof Error ? caught.message : "The rewrite failed.");
@@ -366,8 +396,14 @@ export function ScoreWorkspace() {
 
       {flowStep === 3 && card ? (
         <div className="grid gap-6">
+          {banner ? (
+            <p role="status" className="rounded-xl bg-accent px-4 py-3 text-sm leading-relaxed">
+              {banner}
+            </p>
+          ) : null}
           <CallResult
             card={card}
+            saved={saved}
             bench={bench}
             appeal={appeal}
             beforeScore={beforeScore}
@@ -496,6 +532,15 @@ export function ScoreWorkspace() {
 
           {ownMode ? (
             <div className="grid gap-6 xl:col-start-2 xl:row-start-1 xl:row-span-3">
+              <CallDrop
+                mode={mode}
+                disabled={busy}
+                onTranscript={(text, note) => {
+                  setTranscript(text);
+                  setUploadNote(note);
+                  setFormError(null);
+                }}
+              />
               <div className="grid gap-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <Label htmlFor="own-transcript">The call</Label>
@@ -509,10 +554,12 @@ export function ScoreWorkspace() {
                   placeholder={"Agent: Thanks for calling. How can I help?\nCaller: I need to book a visit."}
                   onChange={(event) => {
                     setTranscript(event.target.value);
+                    setUploadNote(null);
                     setFormError(null);
                   }}
                   className="field-sizing-fixed min-h-56 text-sm leading-relaxed"
                 />
+                {uploadNote ? <p className="text-sm leading-relaxed text-muted-foreground">{uploadNote}</p> : null}
                 {hint ? <p className="text-sm leading-relaxed text-muted-foreground">{hint}</p> : null}
                 {exampleLoaded ? (
                   <p className="text-sm leading-relaxed text-muted-foreground">Harbor Voice example is in the boxes. Edit any line to make it yours.</p>
@@ -550,8 +597,9 @@ export function ScoreWorkspace() {
               </div>
               <p className="text-sm leading-relaxed text-muted-foreground">
                 Assistant, customer, and patient work as labels too. The call can be 80,000 characters. The script and
-                facts together can be 20,000. A live score on the default model uses 2 of this network’s 10 scores this
-                hour. Practice scores are not counted.
+                facts together can be 20,000. A live score on the default model uses 2 of this network’s{" "}
+                {status?.ipHourly ?? 30} scores this hour. A live transcription uses 2 as well. The sample calls and
+                the Harbor example are saved runs and are not counted. Practice runs are not counted.
               </p>
             </div>
           ) : (
