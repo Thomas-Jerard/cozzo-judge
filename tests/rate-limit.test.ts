@@ -19,26 +19,28 @@ afterEach(() => {
 });
 
 describe("live score limits", { concurrency: false }, () => {
-  it("defaults to 10 an hour per IP and 300 a day", () => {
-    assert.equal(liveIpHourlyCap(), 10);
-    assert.equal(liveDailyCap(), 300);
+  it("defaults to 30 an hour per IP and 600 a day", () => {
+    assert.equal(liveIpHourlyCap(), 30);
+    assert.equal(liveDailyCap(), 600);
   });
 
-  it("allows 10 live scores for one IP and refuses the 11th without consuming it", () => {
-    for (let index = 0; index < 10; index += 1) {
+  it("allows the hourly cap for one IP and refuses the next score without consuming it", () => {
+    const cap = liveIpHourlyCap();
+    for (let index = 0; index < cap; index += 1) {
       assert.equal(reserveLiveCalls("203.0.113.8", 1, start + index).ok, true);
     }
-    const denied = reserveLiveCalls("203.0.113.8", 1, start + 10);
+    const denied = reserveLiveCalls("203.0.113.8", 1, start + cap);
     assert.equal(denied.ok, false);
     if (!denied.ok) {
       assert.equal(denied.code, "ip_hourly");
-      assert.match(denied.message, /10 live scores/);
+      assert.match(denied.message, new RegExp(`${cap} live scores`));
       assert.match(denied.message, /Mock scoring is still available/);
     }
-    assert.equal(reserveLiveCalls("203.0.113.9", 1, start + 10).ok, true);
+    assert.equal(reserveLiveCalls("203.0.113.9", 1, start + cap).ok, true);
   });
 
   it("counts a compare as two and does not reserve a pair that does not fit", () => {
+    process.env.LIVE_IP_HOURLY_CAP = "10";
     assert.equal(reserveLiveCalls("203.0.113.8", 9, start).ok, true);
     const denied = reserveLiveCalls("203.0.113.8", 2, start + 1);
     assert.equal(denied.ok, false);
@@ -93,7 +95,7 @@ describe("live score limits", { concurrency: false }, () => {
   it("ignores a bad cap and keeps the default", () => {
     process.env.LIVE_DAILY_CAP = "nope";
     process.env.LIVE_IP_HOURLY_CAP = "-3";
-    assert.equal(liveDailyCap(), 300);
-    assert.equal(liveIpHourlyCap(), 10);
+    assert.equal(liveDailyCap(), 600);
+    assert.equal(liveIpHourlyCap(), 30);
   });
 });

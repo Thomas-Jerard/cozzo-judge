@@ -26,6 +26,8 @@ describe("bench budget and agreement", () => {
     assert.equal(liveCallBudget("appeal", "live", DEFAULT_MODEL_ID), 1);
     assert.equal(liveCallBudget("repair", "live", DEFAULT_MODEL_ID), 2);
     assert.equal(liveCallBudget("repair", "mock", DEFAULT_MODEL_ID), 0);
+    assert.equal(liveCallBudget("transcribe", "live", NANO_MODEL_ID), 2);
+    assert.equal(liveCallBudget("transcribe", "mock", DEFAULT_MODEL_ID), 0);
   });
 
   it("treats a high-risk pass and a low-risk fail as a split", () => {
