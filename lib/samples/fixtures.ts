@@ -1,6 +1,6 @@
 import { fingerprint } from "@/lib/rubric";
 import type { FixtureBody } from "@/lib/rubric";
-import { dentalHarbor, dentalNorthline } from "./dental";
+import { dentalHarbor, dentalHarborRevised, dentalNorthline } from "./dental";
 import { renderPlain, type SampleTurn } from "./format";
 import { hvacHarbor, hvacNorthline } from "./hvac";
 import { medspaHarbor, medspaNorthline } from "./medspa";
@@ -15,6 +15,12 @@ function line(turns: SampleTurn[], seed: string): string {
 
 function evidence(turns: SampleTurn[], seed: string, note: string) {
   return [{ quote: line(turns, seed), note }];
+}
+
+/** A sentence inside a turn, when the video quote is shorter than the whole line. */
+function quote(turns: SampleTurn[], exact: string, note: string) {
+  line(turns, exact);
+  return [{ quote: exact, note }];
 }
 
 const dentalNorthlineFixture: FixtureBody = {
@@ -71,65 +77,132 @@ const dentalNorthlineFixture: FixtureBody = {
 
 const dentalHarborFixture: FixtureBody = {
   summary:
-    "Harbor invented a $49 special, claimed Medicaid was accepted, diagnosed the toothache as sensitivity, and booked Dr. Nguyen, who is out. The call fails on facts and on the handoff.",
+    "The agent failed to follow the Brightmolar script on multiple fronts: gave medical advice, quoted a false $49 new-patient price, claimed Medicaid is accepted, scheduled an unavailable Dr. Nguyen, and promised a specific chair time. The call ended without collecting the caller's phone number or providing a proper message for tooth pain, leaving the task incomplete and the tone informal.",
   criticalFlags: [
     {
       code: "invented_price",
       severity: "critical",
-      message: "The agent quoted a $49 new-patient special that is not in the script.",
-    },
-    {
-      code: "invented_coverage",
-      severity: "critical",
-      message: "The agent said the office takes all insurance, including Medicaid.",
+      message: "Agent quoted a $49 new-patient special, which is not an approved fee.",
     },
     {
       code: "forbidden_advice",
       severity: "critical",
-      message: "The agent told the caller the pain was probably sensitivity and to rinse with salt water.",
+      message: "Agent advised caller to rinse with warm salt water, providing forbidden medical advice.",
     },
     {
       code: "invented_availability",
       severity: "critical",
-      message: "Dr. Nguyen is out this week, and the agent booked that dentist at 4:30.",
+      message: "Agent booked the caller with Dr. Nguyen, who is out this week per the script.",
+    },
+    {
+      code: "missed_handoff",
+      severity: "critical",
+      message:
+        "Agent failed to offer a same-day emergency visit or take a message for the on-call dentist for reported tooth pain.",
     },
   ],
   dimensions: {
     task_completion: {
-      score: 46,
+      score: 10,
       rationale:
-        "A name was taken and a visit was claimed, but the phone number is missing and the booking is for the wrong dentist at an invented time.",
-      evidence: evidence(dentalHarbor, "you're all set for 4:30", "The close skips the callback number."),
-    },
-    factual_accuracy: {
-      score: 18,
-      rationale:
-        "Medicaid, the fee, and Dr. Nguyen's schedule all contradict the script. 4:30 is also a chair time the agent was told not to promise.",
+        "The agent took the caller's name and claimed a 4:30 visit, but it never collected a callback phone number, so the booking the script requires was not completed.",
       evidence: evidence(
         dentalHarbor,
-        "including Medicaid",
-        "This coverage statement is the opposite of the script.",
+        "you're all set for 4:30",
+        "The close claims a booking and never asks for a callback number.",
+      ),
+    },
+    factual_accuracy: {
+      score: 12,
+      rationale:
+        "Multiple statements contradicted the approved facts: price, insurance acceptance, doctor availability, and medical advice.",
+      evidence: quote(
+        dentalHarbor,
+        "We have a new-patient special for $49 today.",
+        "Invents a price not allowed; the script only permits $189 for new-patient cleaning/exam.",
       ),
     },
     escalation_handoff: {
-      score: 12,
+      score: 10,
       rationale:
-        "Overnight tooth pain was minimized instead of being offered as a same-day emergency visit or a message for the on-call dentist.",
+        "Overnight tooth pain was brushed off. The script requires a same-day emergency visit before 2:00 p.m., or a message for the on-call dentist, and neither happened.",
       evidence: evidence(
         dentalHarbor,
-        "probably just sensitivity",
-        "The agent advised instead of handing the pain to a dentist.",
+        "Rinse with warm salt water",
+        "The agent gave medical advice instead of handing the pain to a dentist.",
       ),
     },
     tone_empathy: {
-      score: 40,
-      rationale: "The greeting is slangy, and the pain is brushed off.",
-      evidence: evidence(dentalHarbor, "what's up", "The opening does not match the requested tone."),
+      score: 18,
+      rationale: "The greeting is slangy, and the toothache is brushed off as something the caller can handle at home.",
+      evidence: evidence(dentalHarbor, "what's up", "The opening is slang, which the script's warm, plain tone does not allow."),
     },
     hallucination: {
-      score: 8,
-      rationale: "The $49 special, the universal insurance claim, and the salt-water diagnosis were all invented.",
-      evidence: evidence(dentalHarbor, "$49 today", "This fee does not appear in the requirements."),
+      score: 4,
+      rationale: "The $49 special, the claim that every plan including Medicaid is accepted, and the salt-water advice were all invented.",
+      evidence: evidence(
+        dentalHarbor,
+        "including Medicaid",
+        "Medicaid is not accepted, and this coverage was invented.",
+      ),
+    },
+  },
+};
+
+/** Saved Fix the prompt result for Harbor. Weighted points are 9, 25, 20, 15, and 9, which total 78. */
+const dentalHarborRevisedFixture: FixtureBody = {
+  summary:
+    "The agent greeted the caller politely and correctly stated the practice's policies regarding Medicaid, insurance, and Dr. Nguyen's absence. They offered a same-day emergency visit for the throbbing tooth and asked for a callback phone number, but they never obtained the caller's phone number or finalized a booking, leaving the task incomplete. No false information was given.",
+  criticalFlags: [],
+  dimensions: {
+    task_completion: {
+      score: 30,
+      rationale:
+        "The agent collected the caller's name but failed to secure the required callback phone number and did not confirm a booking or take a complete message, so the caller's job remains unfinished.",
+      evidence: evidence(
+        dentalHarborRevised,
+        "I still need a callback phone number",
+        "The script needs a name and a callback number before the task is complete.",
+      ),
+    },
+    factual_accuracy: {
+      score: 100,
+      rationale:
+        "Every statement about insurance, doctor availability, and the emergency-visit offer matched the business requirements; no facts were contradicted.",
+      evidence: evidence(
+        dentalHarborRevised,
+        "Medicaid is not accepted, but we accept Delta Dental PPO and Aetna PPO.",
+        "Directly reflects the approved insurance information without alteration.",
+      ),
+    },
+    escalation_handoff: {
+      score: 100,
+      rationale:
+        "Throbbing tooth pain was offered as a same-day emergency visit, with no diagnosis and no promise of a chair time.",
+      evidence: evidence(
+        dentalHarborRevised,
+        "I can offer a same-day emergency visit",
+        "The pain was handed to the office the way the script asks.",
+      ),
+    },
+    tone_empathy: {
+      score: 90,
+      rationale: "The greeting is polite and the apology for the toothache is specific, without slang or a sales push.",
+      evidence: evidence(
+        dentalHarborRevised,
+        "Thank you for calling Brightmolar Family Dental.",
+        "The opening matches the warm, plain tone in the script.",
+      ),
+    },
+    hallucination: {
+      score: 100,
+      rationale:
+        "The agent quoted only the $189 fee from the script and did not invent coverage, a clinician's schedule, or a home remedy.",
+      evidence: evidence(
+        dentalHarborRevised,
+        "A new-patient cleaning and exam is $189.",
+        "The only fee quoted is the one in the script.",
+      ),
     },
   },
 };
@@ -326,6 +399,7 @@ const medspaHarborFixture: FixtureBody = {
 const library = new Map<string, FixtureBody>([
   [fingerprint(renderPlain(dentalNorthline)), dentalNorthlineFixture],
   [fingerprint(renderPlain(dentalHarbor)), dentalHarborFixture],
+  [fingerprint(renderPlain(dentalHarborRevised)), dentalHarborRevisedFixture],
   [fingerprint(renderPlain(hvacNorthline)), hvacNorthlineFixture],
   [fingerprint(renderPlain(hvacHarbor)), hvacHarborFixture],
   [fingerprint(renderPlain(medspaNorthline)), medspaNorthlineFixture],

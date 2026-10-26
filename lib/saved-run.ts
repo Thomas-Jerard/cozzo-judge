@@ -1,7 +1,14 @@
 import { agreementFor, localTriage, mockAppeal, type AppealReport, type BenchReport } from "@/lib/bench";
-import { JudgeError, judgeCall, normalizeTranscript, type Scorecard } from "@/lib/rubric";
+import { fingerprint, JudgeError, judgeCall, normalizeTranscript, type Scorecard } from "@/lib/rubric";
 import { repairWithSuper } from "@/lib/score-run";
-import { dentalHarbor, dentalNorthline, dentalRequirements } from "@/lib/samples/dental";
+import {
+  dentalHarbor,
+  dentalHarborRevised,
+  dentalNorthline,
+  dentalRequirements,
+  HARBOR_REPAIR_CHANGES,
+  HARBOR_REPAIR_PROMPT,
+} from "@/lib/samples/dental";
 import { findSampleFixture } from "@/lib/samples/fixtures";
 import { renderPlain } from "@/lib/samples/format";
 import { TranscribeError } from "@/lib/transcribe/limits";
@@ -127,6 +134,9 @@ export async function savedRepair(input: {
   fallback: boolean;
   notice: string;
 }> {
+  if (isHarborCall(input.transcript)) {
+    return harborSavedRepair(input);
+  }
   const repair = await repairWithSuper({
     transcript: input.transcript,
     requirements: input.requirements,
@@ -165,6 +175,47 @@ export function fallbackNotice(message: string, kind: "score" | "compare" | "rep
     return `${lead} The opinion below was prepared on this server and does not change the score. Nebius was not called.`;
   }
   return `${lead} The score below is the saved Harbor Voice example, so you still have a result. It is not a score of the call you sent.`;
+}
+
+function isHarborCall(transcript: string): boolean {
+  const plain = normalizeTranscript(transcript).plainText;
+  return Boolean(plain) && fingerprint(plain) === fingerprint(renderPlain(dentalHarbor));
+}
+
+async function harborSavedRepair(input: {
+  transcript: string;
+  requirements: string;
+  label?: string;
+  beforeOverall?: number;
+  notice: string;
+  fallback: boolean;
+}): Promise<{
+  repair: Awaited<ReturnType<typeof repairWithSuper>>;
+  saved: true;
+  fallback: boolean;
+  notice: string;
+}> {
+  const transcript = renderPlain(dentalHarborRevised);
+  const label = input.label ? `${input.label} · revised agent lines` : "Revised agent lines";
+  const scorecard = stampScore(
+    await judgeCall(
+      { transcript, requirements: input.requirements, label },
+      { mode: "mock", model: SAVED_MODEL, fixtures: findSampleFixture },
+    ),
+  );
+  const repair: Awaited<ReturnType<typeof repairWithSuper>> = {
+    prompt: HARBOR_REPAIR_PROMPT,
+    changes: [...HARBOR_REPAIR_CHANGES],
+    transcript,
+    note: SAVED_REPAIR_NOTE,
+    beforeOverall: input.beforeOverall ?? null,
+    scorecard,
+    bench: stampBench(transcript, input.requirements, scorecard),
+    proposeLatencyMs: 0,
+    provider: "mock",
+    model: SAVED_MODEL,
+  };
+  return { repair, saved: true, fallback: input.fallback, notice: input.notice };
 }
 
 function bundle(

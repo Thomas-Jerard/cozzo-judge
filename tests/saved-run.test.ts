@@ -24,6 +24,14 @@ describe("saved sample runs", () => {
     assert.equal(saved.saved, true);
     assert.equal(saved.fallback, false);
     assert.equal(saved.scorecard.verdict, "fail");
+    assert.equal(saved.scorecard.overall, 10);
+    assert.equal(saved.scorecard.criticalFlags.length, 4);
+    const facts = saved.scorecard.dimensions.find((dimension) => dimension.id === "factual_accuracy");
+    assert.ok(facts);
+    assert.equal(facts.score, 12);
+    assert.equal(Math.round((facts.score * 25) / 100), 3);
+    assert.equal(facts.evidence[0]?.quote, "We have a new-patient special for $49 today.");
+    assert.equal(facts.evidence[0]?.verified, true);
     assert.equal(saved.scorecard.judge.model, SAVED_MODEL);
     assert.match(saved.notice, /Saved run/);
     assert.match(saved.scorecard.judge.note, /did not use a rate-limit slot/);
@@ -77,9 +85,18 @@ describe("saved sample runs", () => {
       fallback: false,
     });
     assert.ok(original);
+    assert.equal(original.scorecard.overall, 10);
     assert.equal(repaired.saved, true);
     assert.equal(repaired.repair.scorecard.judge.model, SAVED_MODEL);
-    assert.ok(repaired.repair.scorecard.overall > original.scorecard.overall);
+    assert.equal(repaired.repair.scorecard.overall, 78);
+    assert.equal(repaired.repair.scorecard.verdict, "review");
+    assert.equal(repaired.repair.scorecard.criticalFlags.length, 0);
+    assert.equal(repaired.repair.scorecard.overall - original.scorecard.overall, 68);
+    assert.equal(repaired.repair.beforeOverall, 10);
+    assert.match(repaired.repair.note, /Saved run/);
+    for (const dimension of repaired.repair.scorecard.dimensions) {
+      assert.ok(dimension.evidence.every((item) => item.verified), dimension.id);
+    }
     const appeal = savedAppeal(original.scorecard, "Saved run.");
     assert.equal(appeal.appeal.model, SAVED_MODEL);
     assert.equal(appeal.appeal.agrees, true);

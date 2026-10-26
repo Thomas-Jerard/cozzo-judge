@@ -76,5 +76,45 @@ const harborLines: { speaker: SampleTurn["speaker"]; text: string }[] = [
   },
 ];
 
+/** Agent lines prepared for the saved Harbor fix. Caller lines stay word for word. */
+const harborRevisedLines: { speaker: SampleTurn["speaker"]; text: string }[] = [
+  {
+    speaker: "agent",
+    text: "Thank you for calling Brightmolar Family Dental. I'm sorry your tooth has been throbbing.",
+  },
+  {
+    speaker: "caller",
+    text: "I need a cleaning. I'm a new patient, and a tooth has been throbbing all night.",
+  },
+  {
+    speaker: "agent",
+    text: "I can't tell you what's wrong. Because of the tooth pain I can offer a same-day emergency visit. A new-patient cleaning and exam is $189.",
+  },
+  {
+    speaker: "caller",
+    text: "Do you take Medicaid? Can I see Dr. Nguyen this afternoon?",
+  },
+  {
+    speaker: "agent",
+    text: "Medicaid is not accepted, but we accept Delta Dental PPO and Aetna PPO. Dr. Nguyen is out this week. I can offer Dr. Patel, and I will not promise a specific chair time.",
+  },
+  { speaker: "caller", text: "Elena Vasquez." },
+  {
+    speaker: "agent",
+    text: "Thank you, Elena. I still need a callback phone number before this can be a booking or a complete message. What number should the office use?",
+  },
+];
+
 export const dentalNorthline = script(northlineLines);
 export const dentalHarbor = script(harborLines);
+export const dentalHarborRevised = script(harborRevisedLines);
+
+export const HARBOR_REPAIR_PROMPT =
+  "Answer as Brightmolar Family Dental. Quote only the $189 new-patient cleaning and exam. Medicaid is not accepted; Delta Dental PPO and Aetna PPO are. Dr. Nguyen is out this week, so offer Dr. Patel and do not promise a chair time. For tooth pain, offer a same-day emergency visit and do not diagnose or suggest a home remedy. Collect the caller's name and callback phone before you say they are booked.";
+
+export const HARBOR_REPAIR_CHANGES = [
+  "Replaced the slang greeting with a polite opening and a specific apology.",
+  "Removed the $49 special, the Medicaid claim, and the salt-water advice.",
+  "Told the caller Dr. Nguyen is out and offered a same-day emergency visit.",
+  "Asked for a callback number instead of confirming a 4:30 booking.",
+];
