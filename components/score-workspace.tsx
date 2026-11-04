@@ -385,11 +385,12 @@ export function ScoreWorkspace() {
       <StepFlow step={flowStep} />
 
       {flowStep === 2 ? (
-        <div className="flex flex-col items-start gap-6 py-6 sm:flex-row sm:items-center">
-          <CozzoCanary pose="think" size={104} label="Cozzo the Canary listening to the call" />
-          <div className="grid gap-3">
+        <div className="glow-card isolate flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:p-10">
+          <CozzoCanary pose="search" size={120} label="Cozzo the Canary listening to the call" />
+          <div className="grid w-full gap-4">
             <h1 className="text-3xl font-semibold tracking-tight">Cozzo is listening to the call</h1>
-            <p className="measure text-lg leading-relaxed text-muted-foreground">{waitCopy(step, repairing)}</p>
+            <p aria-live="polite" className="measure text-lg leading-relaxed text-muted-foreground">{waitCopy(step, repairing)}</p>
+            <div className="scan-bar" aria-hidden="true"><span /></div>
           </div>
         </div>
       ) : null}
@@ -447,7 +448,7 @@ export function ScoreWorkspace() {
       ) : null}
 
       {flowStep === 1 ? (
-        <div className="grid items-start gap-8 xl:grid-cols-2 xl:gap-x-12">
+        <div className="panel grid items-start gap-8 xl:grid-cols-2 xl:gap-x-12">
           <div className="grid gap-8">
             <div className="grid gap-3">
               <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
@@ -654,7 +655,7 @@ export function ScoreWorkspace() {
 
           <div className="grid gap-8">
             <div className="grid gap-4">
-              <Button type="button" size="lg" className="h-12 w-full px-6 text-base sm:w-fit" disabled={busy || (!ownMode && !ready)} onClick={() => judge()}>
+              <Button type="button" size="lg" className="btn-glow h-12 w-full px-8 text-base sm:w-fit" disabled={busy || (!ownMode && !ready)} onClick={() => judge()}>
                 Judge this call
               </Button>
               {formError ? (
@@ -686,7 +687,7 @@ export function ScoreWorkspace() {
               ) : null}
             </div>
 
-            <details className="border-t border-border pt-6">
+            <details className="rounded-2xl border border-border px-5 py-4">
               <summary className="cursor-pointer text-base font-medium">Advanced</summary>
               <div className="mt-6 grid gap-6">
                 <JudgeSettings status={status} model={model} mode={mode} onModel={setModel} onMode={setMode} />

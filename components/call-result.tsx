@@ -57,7 +57,7 @@ export function CallResult({
   const ringSize = layout === "stack" ? 132 : 176;
 
   return (
-    <article id="result" className={layout === "split" ? "score-split score-split-wide" : "score-split"}>
+    <article id="result" className={layout === "split" ? "panel score-split score-split-wide" : "panel score-split"}>
       <div className="grid min-w-0 gap-8">
       <header className="grid gap-5">
         <p className="text-sm text-muted-foreground">
@@ -65,7 +65,7 @@ export function CallResult({
           {saved ? " · Saved run" : ""}
         </p>
         <div className={beforeScore != null ? "score-hero score-hero-pair" : "score-hero"}>
-          <CozzoCanary pose="idle" size={layout === "stack" ? 72 : 96} accent={card.verdict} label={canaryLabel(card.verdict)} />
+          <CozzoCanary pose={card.verdict === "pass" ? "cheer" : card.verdict === "review" ? "think" : "point"} size={layout === "stack" ? 72 : 96} accent={card.verdict} label={canaryLabel(card.verdict)} />
           {beforeScore != null ? (
             <>
               <ScoreRing
@@ -93,12 +93,13 @@ export function CallResult({
       </header>
 
       {card.criticalFlags.length > 0 ? (
-        <section className="flag-card grid gap-2" role="alert">
-          <h2 className="font-medium">{card.criticalFlags.length > 1 ? "Critical flags" : "Critical flag"}</h2>
-          <ul className="grid gap-2">
+        <section className="grid gap-3" role="alert">
+          <h2 className="text-sm font-medium text-muted-foreground">{card.criticalFlags.length > 1 ? "Critical flags" : "Critical flag"}</h2>
+          <ul className="grid gap-3">
             {card.criticalFlags.map((flag) => (
-              <li key={`${flag.code}-${flag.message}`} className="text-sm leading-relaxed">
-                {flag.message}
+              <li key={`${flag.code}-${flag.message}`} className="issue-card" data-severity="critical">
+                <span className="sev sev-critical">Critical</span>
+                <span className="text-sm leading-relaxed">{flag.message}</span>
               </li>
             ))}
           </ul>
@@ -110,8 +111,9 @@ export function CallResult({
           <h2 className="text-sm font-medium text-muted-foreground">What stood out</h2>
           <ol className="grid gap-3">
             {issues.map((issue, index) => (
-              <li key={`${index}-${issue}`} className="text-base leading-relaxed">
-                {issue}
+              <li key={`${index}-${issue}`} className="issue-card" data-severity="issue">
+                <span className="sev sev-issue">Issue</span>
+                <span className="text-base leading-relaxed">{issue}</span>
               </li>
             ))}
           </ol>
@@ -133,7 +135,7 @@ export function CallResult({
 
       {onFix ? (
         <div>
-          <Button type="button" size="lg" className="h-12 px-6 text-base" disabled={fixing} onClick={onFix}>
+          <Button type="button" size="lg" className="btn-glow h-12 px-6 text-base" disabled={fixing} onClick={onFix}>
             {fixing ? <Loader2 className="animate-spin" /> : null}
             {fixing ? "Rewriting the instructions…" : "Fix the prompt"}
           </Button>
@@ -322,7 +324,7 @@ function CheckBar({ dimension }: { dimension: DimensionScore }) {
   const earned = Math.round((dimension.score * weight) / 100);
   const tone = bandTone(dimension.score);
   return (
-    <details className="check-row rounded-2xl border border-border px-4 py-3">
+    <details className="check-row rounded-2xl border border-border bg-[color-mix(in_srgb,var(--card)_70%,transparent)] px-4 py-3">
       <summary className="grid gap-2">
         <span className="flex items-baseline justify-between gap-3">
           <span className="font-medium">

@@ -216,27 +216,27 @@ export function CompareWorkspace() {
 
   return (
     <PageShell>
-      <div className="flex items-end gap-4">
-        <CozzoCanary pose="idle" size={72} label="Cozzo the Canary" />
-        <div>
-          <p className="text-sm text-muted-foreground">Advanced</p>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight sm:text-4xl">Compare two agents</h1>
-        </div>
-      </div>
-      <p className="measure mt-3 text-base leading-relaxed text-muted-foreground">
+      <div className="glow-card isolate flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:p-8">
+        <CozzoCanary pose="search" size={96} label="Cozzo the Canary" />
+        <div className="grid gap-2">
+          <p className="eyebrow w-fit">Advanced</p>
+          <h1 className="text-3xl font-semibold tracking-tight sm:text-5xl">Compare <span className="grad-text">two agents</span></h1>
+      <p className="measure text-base leading-relaxed text-muted-foreground">
         Optional. The main path is one call at a time. Here, the same script is scored for two agents. A gap of three
         points or less is a tie.
       </p>
+        </div>
+      </div>
 
-      <div className="mt-6 flex flex-wrap gap-2">
+      <div className="mt-8 flex flex-wrap gap-2">
         {SCENARIOS.map((item) => (
           <button
             key={item.id}
             type="button"
             aria-pressed={scenario.id === item.id}
             onClick={() => loadScenario(item)}
-            className={`rounded-full px-3 py-1.5 text-sm ring-1 ring-foreground/10 ${
-              scenario.id === item.id ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted"
+            className={`rounded-full px-4 py-2 text-sm font-medium ring-1 transition-colors ${
+              scenario.id === item.id ? "bg-primary text-white ring-primary shadow-[0_8px_20px_-8px_rgb(124_58_237/70%)]" : "bg-card ring-foreground/10 hover:bg-muted"
             }`}
           >
             {item.industry}
@@ -248,7 +248,7 @@ export function CompareWorkspace() {
         Synthetic example · {scenario.business}. {scenario.summary} Northline Voice and Harbor Voice are fictional labels.
       </p>
 
-      <div className="mt-6 grid gap-2">
+      <div className="panel mt-6 grid gap-2">
         <Label htmlFor="shared-requirements">Shared script and requirements</Label>
         <Textarea
           id="shared-requirements"
@@ -283,7 +283,7 @@ export function CompareWorkspace() {
         />
       </div>
 
-      <details className="mt-8 border-t border-border pt-6">
+      <details className="mt-8 rounded-2xl border border-border px-5 py-4">
         <summary className="cursor-pointer text-base font-medium">Model and connection</summary>
         <div className="mt-6 grid gap-4">
           <JudgeSettings status={status} model={model} mode={mode} onModel={setModel} onMode={setMode} />
@@ -293,7 +293,7 @@ export function CompareWorkspace() {
 
       <div className="mt-8 grid gap-4">
         <div className="flex flex-col items-start gap-4">
-          <Button type="button" size="lg" className="h-12 px-6 text-base" disabled={loading || packLoading} onClick={() => judgePair()}>
+          <Button type="button" size="lg" className="btn-glow h-12 px-8 text-base" disabled={loading || packLoading} onClick={() => judgePair()}>
             {loading ? <Loader2 className="animate-spin" /> : null}
             {loading ? "Comparing the calls…" : "Judge this pair"}
           </Button>
@@ -340,7 +340,7 @@ export function CompareWorkspace() {
       </div>
 
       {left && right && lead ? (
-        <section id="comparison" className="mt-10 grid gap-6">
+        <section id="comparison" className="panel mt-10 grid gap-6">
           {banner ? (
             <p role="status" className="rounded-xl bg-accent px-4 py-3 text-sm leading-relaxed">
               {banner}
@@ -410,7 +410,7 @@ export function CompareWorkspace() {
       ) : null}
 
       {pack ? (
-        <section className="mt-10">
+        <section className="panel mt-10">
           <h2 className="text-xl font-semibold">Scenario pack</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Dental, HVAC, and med spa. Each row is the same script scored for Northline Voice and Harbor Voice.
@@ -456,7 +456,7 @@ function ProviderColumn(props: {
 }) {
   const fieldId = props.title.replace(/\s+/g, "-").toLowerCase();
   return (
-    <div className="grid gap-3 rounded-2xl bg-card p-4 ring-1 ring-foreground/10">
+    <div className="panel grid gap-3">
       <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{props.title}</p>
       <div className="grid gap-2">
         <Label htmlFor={`${fieldId}-name`}>Name on the scorecard</Label>

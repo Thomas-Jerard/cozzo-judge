@@ -34,11 +34,11 @@ export function CardView() {
     return (
       <PageShell className="grid justify-items-start gap-4">
         <CozzoCanary pose="peek" size={88} label="Cozzo the Canary waiting for a scorecard" />
-        <h1 className="text-3xl font-semibold tracking-tight">No scorecard in this link</h1>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">No scorecard in this link</h1>
         <p className="measure text-sm leading-relaxed text-muted-foreground">
           Score a call, then choose Copy link. The card is stored in the URL itself, so there is no account and no database.
         </p>
-        <Link href="/score?sample=dental" className="mt-2 inline-block text-sm font-medium underline-offset-4 hover:underline">
+        <Link href="/score?sample=dental" className="btn-glow mt-2 inline-flex h-11 items-center rounded-lg bg-primary px-5 text-sm font-medium text-white">
           Judge a call
         </Link>
       </PageShell>
@@ -48,7 +48,7 @@ export function CardView() {
   if (error === "bad") {
     return (
       <PageShell>
-        <h1 className="text-3xl font-semibold tracking-tight">This scorecard link could not be read</h1>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">This scorecard link could not be read</h1>
         <p className="measure mt-3 text-sm leading-relaxed text-muted-foreground">
           The hash is missing a piece or it was edited. Score the call again and copy a new link.
         </p>
