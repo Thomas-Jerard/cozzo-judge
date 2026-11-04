@@ -3,6 +3,9 @@ const POSES = {
   idle: "/brand/canary-idle.svg",
   think: "/brand/canary-think.svg",
   peek: "/brand/canary-peek.svg",
+  point: "/brand/canary-point.svg",
+  cheer: "/brand/canary-cheer.svg",
+  search: "/brand/canary-search.svg",
 } as const;
 
 export type CanaryPose = keyof typeof POSES;
