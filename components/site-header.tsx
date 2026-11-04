@@ -20,15 +20,15 @@ export function SiteHeader() {
       <PageBar className="flex h-16 items-center justify-between gap-3">
         <a
           href="https://cozzo.io"
-          className="flex min-w-0 items-center gap-2.5 font-heading text-lg font-semibold tracking-tight"
+          className="flex shrink-0 items-center gap-2 font-heading text-base font-semibold tracking-tight whitespace-nowrap sm:gap-2.5 sm:text-lg"
         >
           <CozzoMark />
-          <span className="truncate">
+          <span>
             Cozzo Judge
             <span className="sr-only"> on cozzo.io</span>
           </span>
         </a>
-        <nav aria-label="Main" className="flex items-center gap-1 sm:gap-2">
+        <nav aria-label="Main" className="flex shrink-0 items-center gap-0.5 sm:gap-2">
           {LINKS.map((link) => {
             const active = pathname === link.href;
             return (
@@ -37,10 +37,10 @@ export function SiteHeader() {
                 href={link.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors sm:px-3",
+                  "rounded-lg px-1.5 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors sm:px-3 sm:text-sm",
                   active
-                    ? "bg-accent text-accent-foreground"
-                    : "text-muted-foreground hover:text-foreground",
+                    ? "bg-primary text-white shadow-[0_6px_18px_-8px_rgb(124_58_237/70%)]"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
               >
                 {link.label}

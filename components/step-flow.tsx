@@ -1,36 +1,37 @@
-import { cn } from "@/lib/utils";
+import { Check, ClipboardList, Gauge, Scale } from "lucide-react";
+import { Fragment } from "react";
 
 const STEPS = [
-  { n: 1, label: "Pick a call" },
-  { n: 2, label: "Judge it" },
-  { n: 3, label: "See the result" },
+  { n: 1, label: "Pick a call", Icon: ClipboardList },
+  { n: 2, label: "Judge it", Icon: Scale },
+  { n: 3, label: "See the result", Icon: Gauge },
 ] as const;
 
 export function StepFlow({ step }: { step: 1 | 2 | 3 }) {
   return (
-    <ol className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5" aria-label="Steps">
-      {STEPS.map((item) => {
+    <ol className="flow" aria-label="Steps">
+      {STEPS.map((item, index) => {
         const state = item.n === step ? "current" : item.n < step ? "done" : "upcoming";
+        const Icon = state === "done" ? Check : item.Icon;
         return (
-          <li
-            key={item.n}
-            className="flex items-center gap-3"
-            aria-current={state === "current" ? "step" : undefined}
-          >
-            <span
-              className={cn(
-                "flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-medium",
-                state === "current" && "bg-primary text-primary-foreground",
-                state === "done" && "bg-foreground text-background",
-                state === "upcoming" && "bg-muted text-muted-foreground",
-              )}
-            >
-              {item.n}
-            </span>
-            <span className={cn("text-sm", state === "current" ? "font-medium" : "text-muted-foreground")}>
-              {item.label}
-            </span>
-          </li>
+          <Fragment key={item.n}>
+            {index > 0 ? <li aria-hidden="true" className="flow-line" data-done={item.n <= step} /> : null}
+            <li className="flow-item" data-state={state} aria-current={state === "current" ? "step" : undefined}>
+              <span className="flow-dot">
+                <Icon className="size-4" aria-hidden="true" />
+              </span>
+              <span
+                className={
+                  state === "current"
+                    ? "text-sm font-semibold"
+                    : "hidden text-sm text-muted-foreground sm:inline"
+                }
+              >
+                <span className="sr-only">Step {item.n}: </span>
+                {item.label}
+              </span>
+            </li>
+          </Fragment>
         );
       })}
     </ol>
